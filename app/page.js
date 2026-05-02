@@ -13,19 +13,67 @@ import {
 // MOCK DATA — replace with /api routes (TCBS + VNDirect) in production
 // ============================================================================
 const UNIVERSE = {
-  VIC:  { name: "Vingroup JSC",          exchange: "HOSE", sector: "Real Estate",       price: 42500,  change:  800, changePct:  1.92, pe: 18.4, pb: 1.42, roe:  8.2, divYield: 0.0, revGrowth: 12.4, epsGrowth:  -4.2, marketCap: 162400 },
-  FPT:  { name: "FPT Corporation",       exchange: "HOSE", sector: "Technology",        price: 138400, change: 2100, changePct:  1.54, pe: 22.8, pb: 4.20, roe: 28.4, divYield: 1.8, revGrowth: 21.4, epsGrowth:  24.8, marketCap: 203700 },
-  VNM:  { name: "Vinamilk",              exchange: "HOSE", sector: "Consumer Staples",  price: 67200,  change: -400, changePct: -0.59, pe: 16.4, pb: 4.10, roe: 24.8, divYield: 5.8, revGrowth:  4.2, epsGrowth:   6.8, marketCap: 140400 },
-  HPG:  { name: "Hoa Phat Group",        exchange: "HOSE", sector: "Materials",         price: 27850,  change:  350, changePct:  1.27, pe: 14.2, pb: 1.60, roe: 11.4, divYield: 0.0, revGrowth: 16.2, epsGrowth: 142.4, marketCap: 178200 },
-  MWG:  { name: "Mobile World",          exchange: "HOSE", sector: "Consumer Disc.",    price: 58900,  change:  600, changePct:  1.03, pe: 19.8, pb: 3.10, roe: 18.2, divYield: 0.8, revGrowth: 14.8, epsGrowth:  31.4, marketCap:  86200 },
-  TCB:  { name: "Techcombank",           exchange: "HOSE", sector: "Banks",             price: 24650,  change:  150, changePct:  0.61, pe:  8.4, pb: 1.10, roe: 16.8, divYield: 4.2, revGrowth:  8.4, epsGrowth:  12.1, marketCap:  86400 },
-  ACB:  { name: "Asia Commercial Bank",  exchange: "HOSE", sector: "Banks",             price: 26100,  change: -200, changePct: -0.76, pe:  6.8, pb: 1.40, roe: 22.4, divYield: 6.4, revGrowth: 11.2, epsGrowth:  14.8, marketCap:  98700 },
-  GAS:  { name: "PetroVietnam Gas",      exchange: "HOSE", sector: "Energy",            price: 81200,  change:  900, changePct:  1.12, pe: 15.2, pb: 2.40, roe: 18.4, divYield: 7.2, revGrowth:  3.4, epsGrowth:   9.8, marketCap: 155800 },
-  DGC:  { name: "Duc Giang Chemicals",   exchange: "HOSE", sector: "Materials",         price: 102500, change: 1500, changePct:  1.49, pe: 12.4, pb: 2.80, roe: 28.2, divYield: 2.8, revGrowth: 24.8, epsGrowth:  38.4, marketCap:  38900 },
-  PNJ:  { name: "Phu Nhuan Jewelry",     exchange: "HOSE", sector: "Consumer Disc.",    price: 96400,  change: -300, changePct: -0.31, pe: 14.8, pb: 3.40, roe: 24.2, divYield: 2.2, revGrowth: 18.4, epsGrowth:  22.1, marketCap:  31600 },
+  // Banks
+  VCB:  { name: "Vietcombank",                   exchange: "HOSE", sector: "Banks",             price: 92500,  change:  500, changePct:  0.54, pe: 14.8, pb: 2.90, roe: 21.4, divYield: 0.9, revGrowth: 12.4, epsGrowth: 18.2, marketCap: 521800 },
+  BID:  { name: "BIDV",                           exchange: "HOSE", sector: "Banks",             price: 47200,  change:  200, changePct:  0.43, pe: 11.2, pb: 1.80, roe: 18.4, divYield: 1.4, revGrowth: 14.8, epsGrowth: 21.4, marketCap: 269000 },
+  CTG:  { name: "VietinBank",                     exchange: "HOSE", sector: "Banks",             price: 38400,  change:  300, changePct:  0.79, pe:  9.2, pb: 1.40, roe: 16.8, divYield: 0.0, revGrowth: 11.4, epsGrowth: 14.8, marketCap: 206000 },
+  TCB:  { name: "Techcombank",                    exchange: "HOSE", sector: "Banks",             price: 24650,  change:  150, changePct:  0.61, pe:  8.4, pb: 1.10, roe: 16.8, divYield: 4.2, revGrowth:  8.4, epsGrowth: 12.1, marketCap:  86400 },
+  ACB:  { name: "Asia Commercial Bank",           exchange: "HOSE", sector: "Banks",             price: 26100,  change: -200, changePct: -0.76, pe:  6.8, pb: 1.40, roe: 22.4, divYield: 6.4, revGrowth: 11.2, epsGrowth: 14.8, marketCap:  98700 },
+  MBB:  { name: "Military Commercial Bank",       exchange: "HOSE", sector: "Banks",             price: 24800,  change:  100, changePct:  0.40, pe:  6.4, pb: 1.20, roe: 22.8, divYield: 4.8, revGrowth: 16.2, epsGrowth: 12.8, marketCap: 122400 },
+  VPB:  { name: "VPBank",                         exchange: "HOSE", sector: "Banks",             price: 19400,  change: -100, changePct: -0.51, pe: 11.4, pb: 1.30, roe: 11.2, divYield: 0.0, revGrowth:  8.2, epsGrowth: -4.8, marketCap: 154200 },
+  STB:  { name: "Sacombank",                      exchange: "HOSE", sector: "Banks",             price: 31200,  change:  400, changePct:  1.30, pe:  8.8, pb: 1.10, roe: 13.8, divYield: 0.0, revGrowth: 14.4, epsGrowth: 18.4, marketCap:  58800 },
+  HDB:  { name: "HDBank",                         exchange: "HOSE", sector: "Banks",             price: 25400,  change:  100, changePct:  0.40, pe:  6.2, pb: 1.20, roe: 21.8, divYield: 5.2, revGrowth: 18.4, epsGrowth: 24.2, marketCap:  73800 },
+  EIB:  { name: "Eximbank",                       exchange: "HOSE", sector: "Banks",             price: 18200,  change: -100, changePct: -0.55, pe: 10.4, pb: 1.30, roe: 12.4, divYield: 0.0, revGrowth:  6.8, epsGrowth: -2.4, marketCap:  31600 },
+  MSB:  { name: "Maritime Bank",                  exchange: "HOSE", sector: "Banks",             price: 12400,  change:    0, changePct:  0.00, pe:  7.4, pb: 0.90, roe: 12.8, divYield: 0.0, revGrowth:  9.4, epsGrowth:  4.2, marketCap:  24800 },
+
+  // Real Estate
+  VIC:  { name: "Vingroup JSC",                   exchange: "HOSE", sector: "Real Estate",       price: 42500,  change:  800, changePct:  1.92, pe: 18.4, pb: 1.42, roe:  8.2, divYield: 0.0, revGrowth: 12.4, epsGrowth: -4.2, marketCap: 162400 },
+  VHM:  { name: "Vinhomes",                       exchange: "HOSE", sector: "Real Estate",       price: 41200,  change:  500, changePct:  1.23, pe:  6.8, pb: 1.10, roe: 18.4, divYield: 0.0, revGrowth:  4.2, epsGrowth: -8.4, marketCap: 179400 },
+  VRE:  { name: "Vincom Retail",                  exchange: "HOSE", sector: "Real Estate",       price: 18400,  change: -100, changePct: -0.54, pe: 12.4, pb: 1.40, roe: 11.8, divYield: 0.0, revGrowth: 11.4, epsGrowth: 18.2, marketCap:  41800 },
+  NVL:  { name: "Novaland",                       exchange: "HOSE", sector: "Real Estate",       price: 11800,  change:  100, changePct:  0.85, pe: 22.4, pb: 0.80, roe:  3.4, divYield: 0.0, revGrowth: -28.4, epsGrowth: -64.2, marketCap:  23000 },
+  DXG:  { name: "Dat Xanh Group",                 exchange: "HOSE", sector: "Real Estate",       price: 14200,  change:  -200, changePct: -1.39, pe: 24.8, pb: 0.90, roe:  3.8, divYield: 0.0, revGrowth: -12.4, epsGrowth: -28.4, marketCap:   8400 },
+  KDH:  { name: "Khang Dien House",               exchange: "HOSE", sector: "Real Estate",       price: 32400,  change:  200, changePct:  0.62, pe: 16.2, pb: 1.80, roe: 11.4, divYield: 1.4, revGrowth:  8.4, epsGrowth: 14.2, marketCap:  29400 },
+  KBC:  { name: "Kinh Bac City",                  exchange: "HOSE", sector: "Real Estate",       price: 28800,  change:  400, changePct:  1.41, pe: 18.4, pb: 1.40, roe:  8.4, divYield: 1.8, revGrowth: 24.8, epsGrowth: 38.4, marketCap:  22100 },
+  BCM:  { name: "Becamex IDC",                    exchange: "HOSE", sector: "Real Estate",       price: 64200,  change:  200, changePct:  0.31, pe: 22.4, pb: 2.40, roe: 11.2, divYield: 1.4, revGrowth: 12.8, epsGrowth: 18.4, marketCap:  66400 },
+
+  // Technology
+  FPT:  { name: "FPT Corporation",                exchange: "HOSE", sector: "Technology",        price: 138400, change: 2100, changePct:  1.54, pe: 22.8, pb: 4.20, roe: 28.4, divYield: 1.8, revGrowth: 21.4, epsGrowth: 24.8, marketCap: 203700 },
+  DGW:  { name: "Digiworld",                      exchange: "HOSE", sector: "Technology",        price: 42800,  change:  600, changePct:  1.42, pe: 18.4, pb: 3.20, roe: 18.4, divYield: 0.4, revGrowth: 11.4, epsGrowth:  8.4, marketCap:   8400 },
+
+  // Materials
+  HPG:  { name: "Hoa Phat Group",                 exchange: "HOSE", sector: "Materials",         price: 27850,  change:  350, changePct:  1.27, pe: 14.2, pb: 1.60, roe: 11.4, divYield: 0.0, revGrowth: 16.2, epsGrowth: 142.4, marketCap: 178200 },
+  DGC:  { name: "Duc Giang Chemicals",            exchange: "HOSE", sector: "Materials",         price: 102500, change: 1500, changePct:  1.49, pe: 12.4, pb: 2.80, roe: 28.2, divYield: 2.8, revGrowth: 24.8, epsGrowth: 38.4, marketCap:  38900 },
+  DCM:  { name: "Ca Mau Fertilizer",              exchange: "HOSE", sector: "Materials",         price: 38400,  change:  300, changePct:  0.79, pe: 14.8, pb: 1.80, roe: 12.4, divYield: 5.2, revGrowth: 18.2, epsGrowth: 24.8, marketCap:  20400 },
+  GVR:  { name: "Vietnam Rubber Group",           exchange: "HOSE", sector: "Materials",         price: 32600,  change:  -200, changePct: -0.61, pe: 28.4, pb: 1.20, roe:  4.2, divYield: 1.4, revGrowth: 11.4, epsGrowth: 22.4, marketCap: 130400 },
+
+  // Consumer Staples
+  VNM:  { name: "Vinamilk",                       exchange: "HOSE", sector: "Consumer Staples",  price: 67200,  change: -400, changePct: -0.59, pe: 16.4, pb: 4.10, roe: 24.8, divYield: 5.8, revGrowth:  4.2, epsGrowth:  6.8, marketCap: 140400 },
+  MSN:  { name: "Masan Group",                    exchange: "HOSE", sector: "Consumer Staples",  price: 76800,  change: 1200, changePct:  1.59, pe: 28.4, pb: 2.40, roe:  6.8, divYield: 1.2, revGrowth: 14.8, epsGrowth: 38.4, marketCap: 110400 },
+  SAB:  { name: "Sabeco",                         exchange: "HOSE", sector: "Consumer Staples",  price: 52800,  change: -200, changePct: -0.38, pe: 16.4, pb: 2.80, roe: 18.4, divYield: 6.8, revGrowth:  4.8, epsGrowth:  -2.4, marketCap:  67800 },
+
+  // Consumer Discretionary
+  MWG:  { name: "Mobile World",                   exchange: "HOSE", sector: "Consumer Disc.",    price: 58900,  change:  600, changePct:  1.03, pe: 19.8, pb: 3.10, roe: 18.2, divYield: 0.8, revGrowth: 14.8, epsGrowth: 31.4, marketCap:  86200 },
+  PNJ:  { name: "Phu Nhuan Jewelry",              exchange: "HOSE", sector: "Consumer Disc.",    price: 96400,  change: -300, changePct: -0.31, pe: 14.8, pb: 3.40, roe: 24.2, divYield: 2.2, revGrowth: 18.4, epsGrowth: 22.1, marketCap:  31600 },
+  FRT:  { name: "FPT Retail",                     exchange: "HOSE", sector: "Consumer Disc.",    price: 168400, change: 2400, changePct:  1.45, pe: 38.4, pb: 8.40, roe: 22.4, divYield: 0.0, revGrowth: 28.4, epsGrowth: 124.8, marketCap:  22800 },
+
+  // Energy
+  GAS:  { name: "PetroVietnam Gas",               exchange: "HOSE", sector: "Energy",            price: 81200,  change:  900, changePct:  1.12, pe: 15.2, pb: 2.40, roe: 18.4, divYield: 7.2, revGrowth:  3.4, epsGrowth:  9.8, marketCap: 155800 },
+  PLX:  { name: "Petrolimex",                     exchange: "HOSE", sector: "Energy",            price: 38400,  change:  100, changePct:  0.26, pe: 18.4, pb: 1.80, roe: 11.2, divYield: 5.2, revGrowth: 14.8, epsGrowth: 22.4, marketCap:  48800 },
+  POW:  { name: "PV Power",                       exchange: "HOSE", sector: "Energy",            price: 11400,  change: -100, changePct: -0.87, pe: 22.4, pb: 0.90, roe:  4.8, divYield: 0.0, revGrowth: -2.4, epsGrowth: -14.8, marketCap:  26800 },
+
+  // Financials (non-bank)
+  SSI:  { name: "SSI Securities",                 exchange: "HOSE", sector: "Financials",        price: 31800,  change:  400, changePct:  1.27, pe: 18.4, pb: 1.80, roe: 12.4, divYield: 3.2, revGrowth: 28.4, epsGrowth: 42.4, marketCap:  47200 },
+  VND:  { name: "VNDirect Securities",            exchange: "HOSE", sector: "Financials",        price: 18400,  change:  200, changePct:  1.10, pe: 16.8, pb: 1.40, roe: 11.4, divYield: 2.4, revGrowth: 18.4, epsGrowth: 28.4, marketCap:  27800 },
+  MBS:  { name: "MB Securities",                  exchange: "HNX",  sector: "Financials",        price: 28400,  change:  600, changePct:  2.16, pe: 14.8, pb: 2.20, roe: 18.4, divYield: 1.4, revGrowth: 38.4, epsGrowth: 48.2, marketCap:   8400 },
+
+  // Industrials
+  REE:  { name: "REE Corporation",                exchange: "HOSE", sector: "Industrials",       price: 64200,  change:  400, changePct:  0.63, pe: 12.4, pb: 1.40, roe: 12.8, divYield: 2.8, revGrowth: 11.4, epsGrowth: 14.2, marketCap:  29400 },
+  CTD:  { name: "Coteccons",                      exchange: "HOSE", sector: "Industrials",       price: 78400,  change: 1200, changePct:  1.55, pe: 14.8, pb: 1.40, roe: 11.2, divYield: 1.8, revGrowth: 24.8, epsGrowth: 138.4, marketCap:   7800 },
+  VSC:  { name: "Viconship",                      exchange: "HOSE", sector: "Industrials",       price: 24800,  change: -200, changePct: -0.80, pe: 18.4, pb: 1.20, roe:  8.4, divYield: 4.2, revGrowth:  6.8, epsGrowth: -4.2, marketCap:   5400 },
+  GMD:  { name: "Gemadept",                       exchange: "HOSE", sector: "Industrials",       price: 78200,  change:  800, changePct:  1.03, pe: 22.4, pb: 2.80, roe: 14.2, divYield: 2.4, revGrowth: 18.4, epsGrowth: 28.4, marketCap:  23400 },
 };
 
-const SECTORS = ["Banks", "Real Estate", "Technology", "Materials", "Energy", "Consumer Staples", "Consumer Disc."];
+const SECTORS = ["Banks", "Real Estate", "Technology", "Materials", "Energy", "Consumer Staples", "Consumer Disc.", "Financials", "Industrials"];
 
 const SECTOR_BENCH = { pe: 14, pb: 1.8, roe: 12, revGrowth: 8, epsGrowth: 6, divYield: 2.5 };
 
