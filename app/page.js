@@ -8,6 +8,80 @@ import {
   TrendingUp, TrendingDown, Plus, X, Trash2, Award, Filter,
   Briefcase, Compass, Eye, Activity, ArrowUpRight, ArrowDownRight,
 } from "lucide-react";
+// ============================================================================
+// EDITABLE PRICE — click any price to edit, persists in localStorage
+// ============================================================================
+
+function loadCustomPrices() {
+  if (typeof window === "undefined") return {};
+  try {
+    return JSON.parse(localStorage.getItem("ledger-prices") || "{}");
+  } catch { return {}; }
+}
+
+function saveCustomPrice(symbol, price) {
+  if (typeof window === "undefined") return;
+  try {
+    const prices = loadCustomPrices();
+    prices[symbol] = { price: Number(price), updatedAt: new Date().toISOString() };
+    localStorage.setItem("ledger-prices", JSON.stringify(prices));
+  } catch {}
+}
+
+function clearCustomPrices() {
+  if (typeof window === "undefined") return;
+  try { localStorage.removeItem("ledger-prices"); } catch {}
+}
+
+function EditablePrice({ symbol, currentPrice, onUpdate, className = "" }) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(String(currentPrice));
+
+  const startEdit = (e) => {
+    e.stopPropagation();
+    setValue(String(currentPrice));
+    setEditing(true);
+  };
+  const save = () => {
+    const num = Number(value.replace(/[.,\s]/g, ""));
+    if (!isNaN(num) && num > 0) {
+      saveCustomPrice(symbol, num);
+      onUpdate(symbol, num);
+    }
+    setEditing(false);
+  };
+  const cancel = () => {
+    setEditing(false);
+    setValue(String(currentPrice));
+  };
+
+  if (editing) {
+    return (
+      <input
+        type="text"
+        autoFocus
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onBlur={save}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") save();
+          if (e.key === "Escape") cancel();
+        }}
+        className={`bg-amber-100/10 border border-amber-200/40 px-2 py-0.5 outline-none text-amber-100 tabular-nums w-24 ${className}`}
+        onClick={(e) => e.stopPropagation()}
+      />
+    );
+  }
+  return (
+    <span
+      onClick={startEdit}
+      className={`cursor-pointer hover:bg-amber-100/5 hover:ring-1 hover:ring-amber-200/30 px-1 rounded-sm tabular-nums transition-all ${className}`}
+      title="Click to edit price"
+    >
+      {new Intl.NumberFormat("vi-VN").format(Math.round(currentPrice))}
+    </span>
+  );
+}
 
 // ============================================================================
 // MOCK DATA — replace with /api routes (TCBS + VNDirect) in production
@@ -319,7 +393,7 @@ function AddWatchForm({ existing, onAdd, onCancel }) {
 // ============================================================================
 // HOLDINGS
 // ============================================================================
-function HoldingsView({ holdings, onAdd, onRemove }) {
+function HoldingsView({ holdings, onAdd, onRemove , onPriceUpdate}) {
   const positions = useMemo(() => holdings.map(computePosition).filter(Boolean), [holdings]);
   const [showForm, setShowForm] = useState(false);
 
@@ -441,7 +515,13 @@ function HoldingsView({ holdings, onAdd, onRemove }) {
                   </td>
                   <td className="text-right p-4 tabular-nums">{fmtVND(p.quantity)}</td>
                   <td className="text-right p-4 tabular-nums text-stone-400">{fmtVND(p.buyPrice)}</td>
-                  <td className="text-right p-4 tabular-nums">{fmtVND(p.stock.price)}</td>
+                  <td className="text-right p-4">
+                    <EditablePrice
+                      symbol={p.symbol}
+                      currentPrice={p.stock.price}
+                      onUpdate={onPriceUpdate}
+                    />
+                  </td>
                   <td className="text-right p-4 tabular-nums">{fmtVND(p.currentValue)}</td>
                   <td className={`text-right p-4 tabular-nums text-xs ${p.todayGain >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
                     {p.todayGain >= 0 ? "+" : ""}{fmtVND(p.todayGain)}
@@ -471,7 +551,7 @@ function HoldingsView({ holdings, onAdd, onRemove }) {
 // ============================================================================
 // WATCHLIST
 // ============================================================================
-function WatchlistView({ watchlist, onAdd, onRemove }) {
+function WatchlistView({ watchlist, onAdd, onRemove , onPriceUpdate}) {
   const [showForm, setShowForm] = useState(false);
   const items = watchlist.map(s => ({ symbol: s, ...UNIVERSE[s] })).filter(x => x.name);
   return (
@@ -508,7 +588,9 @@ function WatchlistView({ watchlist, onAdd, onRemove }) {
                 </button>
               </div>
               <div className="flex items-baseline gap-2 mb-3">
-                <span className="font-serif text-2xl text-stone-100 tabular-nums" style={SERIF}>{fmtVND(s.price)}</span>
+                <span className="font-serif text-2xl text-stone-100" style={SERIF}>
+                  <EditablePrice symbol={s.symbol} currentPrice={s.price} onUpdate={onPriceUpdate} />
+                </span>
                 <span className="text-xs text-stone-500">₫</span>
                 <span className={`text-xs tabular-nums ml-auto ${s.change >= 0 ? "text-emerald-400" : "text-rose-400"}`}>{fmtPct(s.changePct)}</span>
               </div>
@@ -933,7 +1015,7 @@ function FlowView() {
 // ROOT APP
 // ============================================================================
 export default function StockTrackerApp() {
-const [tab, setTab] = useState("holdings");
+  const [tab, setTab] = useState("holdings");
   const [holdings, setHoldings] = useState(() => {
     if (typeof window === "undefined") return SAMPLE_HOLDINGS;
     try {
@@ -948,38 +1030,42 @@ const [tab, setTab] = useState("holdings");
       return saved ? JSON.parse(saved) : ["MWG", "ACB", "DGC"];
     } catch { return ["MWG", "ACB", "DGC"]; }
   });
-  const [pricesLoaded, setPricesLoaded] = useState(false);
-  const [tradeDate, setTradeDate] = useState(null);
+  const [priceVersion, setPriceVersion] = useState(0);
 
   useEffect(() => {
-    fetch("/api/quotes")
-      .then(r => r.json())
-      .then(data => {
-        if (data?.quotes) {
-          for (const [sym, live] of Object.entries(data.quotes)) {
-            if (UNIVERSE[sym]) {
-              UNIVERSE[sym].price = live.price;
-              UNIVERSE[sym].change = live.change;
-              UNIVERSE[sym].changePct = live.changePct;
-            }
-          }
-          setTradeDate(data.tradeDate);
-        }
-        setPricesLoaded(true);
-      })
-      .catch(() => setPricesLoaded(true));
+    const custom = loadCustomPrices();
+    for (const [sym, data] of Object.entries(custom)) {
+      if (UNIVERSE[sym] && data.price) {
+        UNIVERSE[sym].price = data.price;
+      }
+    }
+    setPriceVersion(v => v + 1);
   }, []);
-// Save holdings to localStorage whenever they change
+
   useEffect(() => {
     if (typeof window === "undefined") return;
     try { localStorage.setItem("ledger-holdings", JSON.stringify(holdings)); } catch {}
   }, [holdings]);
 
-  // Save watchlist to localStorage whenever it changes
   useEffect(() => {
     if (typeof window === "undefined") return;
     try { localStorage.setItem("ledger-watchlist", JSON.stringify(watchlist)); } catch {}
   }, [watchlist]);
+
+  const handlePriceUpdate = (symbol, newPrice) => {
+    if (UNIVERSE[symbol]) {
+      UNIVERSE[symbol].price = newPrice;
+      setPriceVersion(v => v + 1);
+    }
+  };
+
+  const handleResetPrices = () => {
+    if (confirm("Reset all prices to default mock data? Your holdings will not be affected.")) {
+      clearCustomPrices();
+      window.location.reload();
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#16130f] text-stone-200" style={{ fontFamily: '"Inter", system-ui, sans-serif' }}>
       <div className="fixed inset-0 pointer-events-none opacity-[0.03]"
@@ -994,42 +1080,34 @@ const [tab, setTab] = useState("holdings");
             <span className="text-stone-600 text-[10px] tracking-[0.3em] uppercase">Vietnam Equity Tracker</span>
           </div>
           <div className="flex items-center gap-4 text-[11px] text-stone-500">
-            {tradeDate && (
-              <div className="flex items-center gap-2">
-                <span className="text-stone-600 tracking-wider">LAST CLOSE</span>
-                <span className="text-amber-200 tabular-nums">{tradeDate.slice(0, 10)}</span>
-              </div>
-            )}
+            <button
+              onClick={handleResetPrices}
+              className="text-stone-500 hover:text-rose-300 tracking-wider transition-colors"
+              title="Reset all prices to default"
+            >
+              RESET PRICES
+            </button>
             <div className="flex items-center gap-2">
-              <span className={`w-1.5 h-1.5 rounded-full ${pricesLoaded ? "bg-emerald-400" : "bg-amber-400 animate-pulse"}`}/>
-              <span className="tracking-wider">{pricesLoaded ? "LIVE DATA" : "LOADING"}</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-300"/>
+              <span className="tracking-wider text-amber-200">CLICK PRICES TO EDIT</span>
             </div>
           </div>
         </header>
 
-        {!pricesLoaded ? (
-          <div className="text-center py-20 text-stone-500">
-            <div className="inline-block w-6 h-6 border-2 border-stone-700 border-t-amber-300 rounded-full animate-spin mb-3"/>
-            <div>Fetching live prices from TCBS...</div>
-          </div>
-        ) : (
-          <>
-            <nav className="flex gap-1 mb-8 border-b border-stone-800/40 overflow-x-auto">
-              <Tab active={tab === "holdings"}  onClick={() => setTab("holdings")}  icon={Briefcase}>My Holdings</Tab>
-              <Tab active={tab === "watchlist"} onClick={() => setTab("watchlist")} icon={Eye}>Watchlist</Tab>
-              <Tab active={tab === "discover"}  onClick={() => setTab("discover")}  icon={Compass}>Discover</Tab>
-              <Tab active={tab === "flow"}      onClick={() => setTab("flow")}      icon={Activity}>Market Flow</Tab>
-            </nav>
+        <nav className="flex gap-1 mb-8 border-b border-stone-800/40 overflow-x-auto">
+          <Tab active={tab === "holdings"}  onClick={() => setTab("holdings")}  icon={Briefcase}>My Holdings</Tab>
+          <Tab active={tab === "watchlist"} onClick={() => setTab("watchlist")} icon={Eye}>Watchlist</Tab>
+          <Tab active={tab === "discover"}  onClick={() => setTab("discover")}  icon={Compass}>Discover</Tab>
+          <Tab active={tab === "flow"}      onClick={() => setTab("flow")}      icon={Activity}>Market Flow</Tab>
+        </nav>
 
-            {tab === "holdings"  && <HoldingsView holdings={holdings} onAdd={(h) => setHoldings(p => [...p, h])} onRemove={(id) => setHoldings(p => p.filter(x => x.id !== id))}/>}
-            {tab === "watchlist" && <WatchlistView watchlist={watchlist} onAdd={(s) => setWatchlist(p => [...p, s])} onRemove={(s) => setWatchlist(p => p.filter(x => x !== s))}/>}
-            {tab === "discover"  && <DiscoverView/>}
-            {tab === "flow"      && <FlowView/>}
-          </>
-        )}
+        {tab === "holdings"  && <HoldingsView key={priceVersion} holdings={holdings} onAdd={(h) => setHoldings(p => [...p, h])} onRemove={(id) => setHoldings(p => p.filter(x => x.id !== id))} onPriceUpdate={handlePriceUpdate}/>}
+        {tab === "watchlist" && <WatchlistView key={priceVersion} watchlist={watchlist} onAdd={(s) => setWatchlist(p => [...p, s])} onRemove={(s) => setWatchlist(p => p.filter(x => x !== s))} onPriceUpdate={handlePriceUpdate}/>}
+        {tab === "discover"  && <DiscoverView key={priceVersion}/>}
+        {tab === "flow"      && <FlowView key={priceVersion}/>}
 
         <footer className="mt-12 pt-5 border-t border-stone-800/60 flex items-center justify-between text-[10px] text-stone-600 tracking-wider uppercase">
-          <span>Prices: TCBS (last close) · Ratios: mock data</span>
+          <span>Manual price entry · Saved locally</span>
           <span>Ledger · Vietnam Markets</span>
         </footer>
       </div>
