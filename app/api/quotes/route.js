@@ -1,12 +1,11 @@
 // app/api/quotes/route.js
-// Fetches LAST CLOSE prices for VN stocks from TCBS daily history endpoint.
-// Always uses the latest available close (Friday on weekends, yesterday after-hours).
-// Cached for 30 min — closes don't change throughout the day.
+// Fetches LAST CLOSE prices for VN stocks from VNDirect's free dchart API.
+// VNDirect doesn't block cloud IPs, unlike TCBS.
 
 export const revalidate = 1800;
 export const dynamic = "force-dynamic";
 
-const TCBS_BASE = "https://apipubaws.tcbs.com.vn/stock-insight/v1";
+const VND_BASE = "https://dchart-api.vndirect.com.vn/dchart";
 
 const TICKERS = [
   "VCB", "BID", "CTG", "TCB", "ACB", "MBB", "VPB", "STB", "HDB", "EIB", "MSB",
@@ -21,7 +20,9 @@ const TICKERS = [
 ];
 
 async function fetchLastClose(ticker) {
-  const url = `${TCBS_BASE}/stock/bars-long-term?ticker=${ticker}&type=stock&resolution=D&countBack=2`;
+  const to = Math.floor(Date.now() / 1000);
+  const from = to - 14 * 24 * 60 * 60; // last 14 days, plenty for "last 2 closes"
+  const url = `${VND_BASE}/history?symbol=${ticker}&resolution=D&from=${from}&to=${to}`;
   try {
     const res = await fetch(url, {
       headers: { "User-Agent": "Mozilla/5.0", Accept: "application/json" },
@@ -29,23 +30,24 @@ async function fetchLastClose(ticker) {
     });
     if (!res.ok) return null;
     const json = await res.json();
-    const bars = Array.isArray(json?.data) ? json.data : [];
-    if (bars.length === 0) return null;
+    // VNDirect returns: { s: "ok", t: [timestamps], o: [opens], h: [highs], l: [lows], c: [closes], v: [volumes] }
+    if (json?.s !== "ok" || !Array.isArray(json.c) || json.c.length === 0) return null;
 
-    const last = bars[bars.length - 1];
-    const prev = bars.length >= 2 ? bars[bars.length - 2] : null;
-
-    const close = Number(last.close ?? last.c ?? 0) * 1000;
-    const prevClose = prev ? Number(prev.close ?? prev.c ?? 0) * 1000 : close;
-    const change = close - prevClose;
+    const closes = json.c;
+    const times = json.t;
+    const lastClose = Number(closes[closes.length - 1]);
+    const prevClose = closes.length >= 2 ? Number(closes[closes.length - 2]) : lastClose;
+    const change = lastClose - prevClose;
     const changePct = prevClose ? (change / prevClose) * 100 : 0;
+    const lastTs = times[times.length - 1];
+    const tradeDate = lastTs ? new Date(lastTs * 1000).toISOString() : null;
 
     return {
       ticker,
-      price: Math.round(close),
+      price: Math.round(lastClose),
       change: Math.round(change),
       changePct: Number(changePct.toFixed(2)),
-      tradeDate: last.tradingDate ?? last.date ?? null,
+      tradeDate,
     };
   } catch {
     return null;
@@ -69,6 +71,7 @@ export async function GET() {
       updatedAt: new Date().toISOString(),
       tradeDate: lastTradeDate,
       count: Object.keys(quotes).length,
+      source: "VNDirect dchart",
     },
     {
       headers: {
