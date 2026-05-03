@@ -316,53 +316,64 @@ function PillToggle({ value, onChange, options }) {
 // ============================================================================
 // FORMS
 // ============================================================================
-function AddHoldingForm({ onAdd, onCancel }) {
-  const [symbol, setSymbol] = useState("");
-  const [quantity, setQuantity] = useState("");
-  const [buyPrice, setBuyPrice] = useState("");
-  const [buyDate, setBuyDate] = useState(new Date().toISOString().slice(0, 10));
+// ============================================================================
+// SELL FORM — record when you sold a position
+// ============================================================================
+
+function SellForm({ position, onConfirm, onCancel }) {
+  const [sellPrice, setSellPrice] = useState(String(position.stock.price));
+  const [sellDate, setSellDate] = useState(new Date().toISOString().slice(0, 10));
   const [error, setError] = useState("");
 
   const submit = () => {
-    const sym = symbol.toUpperCase();
-    if (!UNIVERSE[sym]) { setError(`Ticker "${sym}" not in universe. Try: ${Object.keys(UNIVERSE).slice(0, 5).join(", ")}…`); return; }
-    if (!quantity || Number(quantity) <= 0) { setError("Quantity must be greater than 0"); return; }
-    if (!buyPrice || Number(buyPrice) <= 0) { setError("Buy price must be greater than 0"); return; }
-    onAdd({ id: `h_${Date.now()}`, symbol: sym, quantity: Number(quantity), buyPrice: Number(buyPrice), buyDate });
+    const price = Number(sellPrice.replace(/[.,\s]/g, ""));
+    if (!price || price <= 0) { setError("Sell price must be greater than 0"); return; }
+    if (!sellDate) { setError("Please pick a sell date"); return; }
+    onConfirm({
+      ...position,
+      sellPrice: price,
+      sellDate,
+      soldAt: new Date().toISOString(),
+    });
   };
 
   return (
-    <div className="bg-stone-900/60 border border-amber-200/20 p-5 rounded-sm">
+    <div className="bg-stone-900/60 border border-rose-300/30 p-5 rounded-sm mt-3">
       <div className="flex items-center justify-between mb-4">
-        <h4 className="font-serif text-lg text-amber-100" style={SERIF}>Add Holding</h4>
+        <div>
+          <h4 className="font-serif text-lg text-rose-200" style={SERIF}>Sell {position.symbol}</h4>
+          <p className="text-stone-500 text-xs mt-1">{position.stock.name} · {position.quantity} shares · bought at {fmtVND(position.buyPrice)} ₫</p>
+        </div>
         <button onClick={onCancel} className="text-stone-500 hover:text-stone-300"><X className="w-4 h-4"/></button>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div>
-          <label className="text-[10px] text-stone-500 tracking-wider uppercase">Ticker</label>
-          <input value={symbol} onChange={e => setSymbol(e.target.value.toUpperCase())} placeholder="FPT"
-            className="w-full mt-1 bg-stone-900 border border-stone-800 px-3 py-2 text-sm focus:outline-none focus:border-amber-200/30"/>
+          <label className="text-[10px] text-stone-500 tracking-wider uppercase">Sell Price (₫)</label>
+          <input value={sellPrice} onChange={e => setSellPrice(e.target.value)} type="text" placeholder="80000"
+            className="w-full mt-1 bg-stone-900 border border-stone-800 px-3 py-2 text-sm tabular-nums focus:outline-none focus:border-rose-300/30"/>
         </div>
         <div>
-          <label className="text-[10px] text-stone-500 tracking-wider uppercase">Quantity</label>
-          <input value={quantity} onChange={e => setQuantity(e.target.value)} type="number" placeholder="100"
-            className="w-full mt-1 bg-stone-900 border border-stone-800 px-3 py-2 text-sm tabular-nums focus:outline-none focus:border-amber-200/30"/>
-        </div>
-        <div>
-          <label className="text-[10px] text-stone-500 tracking-wider uppercase">Buy Price (₫)</label>
-          <input value={buyPrice} onChange={e => setBuyPrice(e.target.value)} type="number" placeholder="105000"
-            className="w-full mt-1 bg-stone-900 border border-stone-800 px-3 py-2 text-sm tabular-nums focus:outline-none focus:border-amber-200/30"/>
-        </div>
-        <div>
-          <label className="text-[10px] text-stone-500 tracking-wider uppercase">Buy Date</label>
-          <input value={buyDate} onChange={e => setBuyDate(e.target.value)} type="date"
-            className="w-full mt-1 bg-stone-900 border border-stone-800 px-3 py-2 text-sm focus:outline-none focus:border-amber-200/30"/>
+          <label className="text-[10px] text-stone-500 tracking-wider uppercase">Sell Date</label>
+          <input value={sellDate} onChange={e => setSellDate(e.target.value)} type="date"
+            className="w-full mt-1 bg-stone-900 border border-stone-800 px-3 py-2 text-sm focus:outline-none focus:border-rose-300/30"/>
         </div>
       </div>
       {error && <div className="mt-3 text-xs text-rose-300">{error}</div>}
-      <button onClick={submit} className="mt-3 px-4 py-2 bg-amber-100/10 border border-amber-200/30 text-amber-100 text-xs tracking-wider uppercase hover:bg-amber-100/20">Confirm</button>
+      <button onClick={submit} className="mt-3 px-4 py-2 bg-rose-300/10 border border-rose-300/30 text-rose-200 text-xs tracking-wider uppercase hover:bg-rose-300/20">
+        Confirm Sale
+      </button>
     </div>
   );
+}
+
+function loadSold() {
+  if (typeof window === "undefined") return [];
+  try { return JSON.parse(localStorage.getItem("ledger-sold") || "[]"); } catch { return []; }
+}
+
+function saveSold(list) {
+  if (typeof window === "undefined") return;
+  try { localStorage.setItem("ledger-sold", JSON.stringify(list)); } catch {}
 }
 
 function AddWatchForm({ existing, onAdd, onCancel }) {
@@ -393,9 +404,10 @@ function AddWatchForm({ existing, onAdd, onCancel }) {
 // ============================================================================
 // HOLDINGS
 // ============================================================================
-function HoldingsView({ holdings, onAdd, onRemove , onPriceUpdate}) {
+function HoldingsView({ holdings, onAdd, onRemove , onPriceUpdate, onSell}) {
   const positions = useMemo(() => holdings.map(computePosition).filter(Boolean), [holdings]);
   const [showForm, setShowForm] = useState(false);
+  const [sellingId, setSellingId] = useState(null);
 
   const totals = useMemo(() => {
     if (!positions.length) return null;
@@ -485,7 +497,13 @@ function HoldingsView({ holdings, onAdd, onRemove , onPriceUpdate}) {
           </Section>
         </div>
       </div>
-
+{sellingId && (
+        <SellForm
+          position={positions.find(p => p.id === sellingId)}
+          onConfirm={(soldData) => { onSell(soldData); setSellingId(null); }}
+          onCancel={() => setSellingId(null)}
+        />
+      )}
       <div className="bg-stone-900/40 border border-stone-800/60 rounded-sm overflow-hidden">
         <div className="p-5 border-b border-stone-800/60">
           <h3 className="font-serif text-lg text-amber-100/90" style={SERIF}>Positions</h3>
@@ -534,9 +552,22 @@ function HoldingsView({ holdings, onAdd, onRemove , onPriceUpdate}) {
                   </td>
                   <td className="text-right p-4 tabular-nums text-stone-500">{p.days}</td>
                   <td className="p-4">
-                    <button onClick={() => onRemove(p.id)} className="text-stone-600 hover:text-rose-400">
-                      <Trash2 className="w-3.5 h-3.5"/>
-                    </button>
+                   <div className="flex gap-2 justify-end">
+  <button
+    onClick={() => setSellingId(p.id)}
+    className="text-stone-600 hover:text-amber-300 text-[10px] tracking-wider uppercase border border-stone-700 px-2 py-1"
+    title="Mark as sold"
+  >
+    Sell
+  </button>
+  <button
+    onClick={() => onRemove(p.id)}
+    className="text-stone-600 hover:text-rose-400"
+    title="Delete (without recording a sale)"
+  >
+    <Trash2 className="w-3.5 h-3.5"/>
+  </button>
+</div>
                   </td>
                 </tr>
               ))}
@@ -608,6 +639,107 @@ function WatchlistView({ watchlist, onAdd, onRemove , onPriceUpdate}) {
 }
 
 // ============================================================================
+// SOLD POSITIONS TAB — closed trades with realized P&L
+// ============================================================================
+
+function SoldView({ sold, onDelete }) {
+  const positions = useMemo(() => sold.map(s => {
+    const stock = UNIVERSE[s.symbol] || { name: s.symbol, sector: "—" };
+    const cost = s.quantity * s.buyPrice;
+    const proceeds = s.quantity * s.sellPrice;
+    const realized = proceeds - cost;
+    const realizedPct = (realized / cost) * 100;
+    const days = Math.floor((new Date(s.sellDate) - new Date(s.buyDate)) / 86400000);
+    return { ...s, stock, cost, proceeds, realized, realizedPct, days };
+  }).sort((a, b) => new Date(b.sellDate) - new Date(a.sellDate)), [sold]);
+
+  const totals = useMemo(() => {
+    if (!positions.length) return null;
+    const cost = positions.reduce((s, p) => s + p.cost, 0);
+    const proceeds = positions.reduce((s, p) => s + p.proceeds, 0);
+    const realized = proceeds - cost;
+    return { cost, proceeds, realized, realizedPct: (realized / cost) * 100, count: positions.length };
+  }, [positions]);
+
+  if (!positions.length) {
+    return (
+      <div className="text-center py-20 text-stone-500">
+        <Activity className="w-10 h-10 mx-auto text-stone-700 mb-3"/>
+        No sold positions yet. Click the "Sell" button on any holding to close a position.
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-8">
+      <div className="bg-gradient-to-br from-stone-900/60 to-stone-900/20 border border-stone-800/60 p-7 rounded-sm">
+        <div className="text-[10px] text-stone-500 tracking-[0.3em] uppercase">Realized P&L · All Time</div>
+        <div className={`font-serif text-5xl tabular-nums mt-1 ${totals.realized >= 0 ? "text-emerald-300" : "text-rose-300"}`} style={SERIF}>
+          {totals.realized >= 0 ? "+" : ""}{fmtVND(totals.realized)} <span className="text-xl text-stone-500">₫</span>
+        </div>
+        <div className="text-stone-400 text-sm mt-2">{fmtPct(totals.realizedPct)} on {fmtVND(totals.cost)} ₫ invested across {totals.count} closed positions</div>
+        <div className="grid grid-cols-3 gap-6 pt-5 mt-5 border-t border-stone-800/60">
+          <Stat label="Total Invested" value={`${fmtVND(totals.cost)} ₫`} />
+          <Stat label="Total Proceeds" value={`${fmtVND(totals.proceeds)} ₫`} />
+          <Stat label="Net Realized" value={`${totals.realized >= 0 ? "+" : ""}${fmtVND(totals.realized)} ₫`} tone={totals.realized >= 0 ? "good" : "bad"} />
+        </div>
+      </div>
+
+      <div className="bg-stone-900/40 border border-stone-800/60 rounded-sm overflow-hidden">
+        <div className="p-5 border-b border-stone-800/60">
+          <h3 className="font-serif text-lg text-amber-100/90" style={SERIF}>Closed Positions</h3>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-[10px] tracking-[0.15em] uppercase text-stone-500 border-b border-stone-800/60">
+                <th className="text-left p-4 font-normal">Stock</th>
+                <th className="text-right p-4 font-normal">Qty</th>
+                <th className="text-right p-4 font-normal">Buy</th>
+                <th className="text-right p-4 font-normal">Sell</th>
+                <th className="text-right p-4 font-normal">Cost</th>
+                <th className="text-right p-4 font-normal">Proceeds</th>
+                <th className="text-right p-4 font-normal">Realized</th>
+                <th className="text-right p-4 font-normal">%</th>
+                <th className="text-right p-4 font-normal">Held</th>
+                <th className="text-right p-4 font-normal">Sold Date</th>
+                <th className="p-4"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {positions.map(p => (
+                <tr key={p.id} className="border-b border-stone-800/40 hover:bg-stone-900/40">
+                  <td className="p-4">
+                    <div className="font-serif text-base text-amber-100" style={SERIF}>{p.symbol}</div>
+                    <div className="text-[11px] text-stone-500">{p.stock.name}</div>
+                  </td>
+                  <td className="text-right p-4 tabular-nums">{fmtVND(p.quantity)}</td>
+                  <td className="text-right p-4 tabular-nums text-stone-400">{fmtVND(p.buyPrice)}</td>
+                  <td className="text-right p-4 tabular-nums text-stone-400">{fmtVND(p.sellPrice)}</td>
+                  <td className="text-right p-4 tabular-nums text-stone-400">{fmtVND(p.cost)}</td>
+                  <td className="text-right p-4 tabular-nums">{fmtVND(p.proceeds)}</td>
+                  <td className={`text-right p-4 tabular-nums ${p.realized >= 0 ? "text-emerald-300" : "text-rose-300"}`}>
+                    {p.realized >= 0 ? "+" : ""}{fmtVND(p.realized)}
+                  </td>
+                  <td className={`text-right p-4 tabular-nums font-medium ${p.realizedPct >= 0 ? "text-emerald-300" : "text-rose-300"}`}>
+                    {fmtPct(p.realizedPct)}
+                  </td>
+                  <td className="text-right p-4 tabular-nums text-stone-500">{p.days}d</td>
+                  <td className="text-right p-4 tabular-nums text-stone-500 text-xs">{p.sellDate}</td>
+                  <td className="p-4">
+                    <button onClick={() => onDelete(p.id)} className="text-stone-600 hover:text-rose-400">
+                      <Trash2 className="w-3.5 h-3.5"/>
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}// ============================================================================
 // DISCOVER
 // ============================================================================
 function DiscoverView() {
@@ -1030,6 +1162,7 @@ export default function StockTrackerApp() {
       return saved ? JSON.parse(saved) : ["MWG", "ACB", "DGC"];
     } catch { return ["MWG", "ACB", "DGC"]; }
   });
+  const [sold, setSold] = useState(() => loadSold());
   const [priceVersion, setPriceVersion] = useState(0);
 
   useEffect(() => {
@@ -1051,7 +1184,7 @@ export default function StockTrackerApp() {
     if (typeof window === "undefined") return;
     try { localStorage.setItem("ledger-watchlist", JSON.stringify(watchlist)); } catch {}
   }, [watchlist]);
-
+useEffect(() => { saveSold(sold); }, [sold]);
   const handlePriceUpdate = (symbol, newPrice) => {
     if (UNIVERSE[symbol]) {
       UNIVERSE[symbol].price = newPrice;
@@ -1063,6 +1196,17 @@ export default function StockTrackerApp() {
     if (confirm("Reset all prices to default mock data? Your holdings will not be affected.")) {
       clearCustomPrices();
       window.location.reload();
+    }
+  };
+
+  const handleSell = (soldData) => {
+    setSold(prev => [...prev, soldData]);
+    setHoldings(prev => prev.filter(h => h.id !== soldData.id));
+  };
+
+  const handleDeleteSold = (id) => {
+    if (confirm("Remove this sold position from history?")) {
+      setSold(prev => prev.filter(s => s.id !== id));
     }
   };
 
@@ -1097,12 +1241,14 @@ export default function StockTrackerApp() {
         <nav className="flex gap-1 mb-8 border-b border-stone-800/40 overflow-x-auto">
           <Tab active={tab === "holdings"}  onClick={() => setTab("holdings")}  icon={Briefcase}>My Holdings</Tab>
           <Tab active={tab === "watchlist"} onClick={() => setTab("watchlist")} icon={Eye}>Watchlist</Tab>
+          <Tab active={tab === "sold"}      onClick={() => setTab("sold")}      icon={Activity}>Sold</Tab>
           <Tab active={tab === "discover"}  onClick={() => setTab("discover")}  icon={Compass}>Discover</Tab>
           <Tab active={tab === "flow"}      onClick={() => setTab("flow")}      icon={Activity}>Market Flow</Tab>
         </nav>
 
-        {tab === "holdings"  && <HoldingsView key={priceVersion} holdings={holdings} onAdd={(h) => setHoldings(p => [...p, h])} onRemove={(id) => setHoldings(p => p.filter(x => x.id !== id))} onPriceUpdate={handlePriceUpdate}/>}
-        {tab === "watchlist" && <WatchlistView key={priceVersion} watchlist={watchlist} onAdd={(s) => setWatchlist(p => [...p, s])} onRemove={(s) => setWatchlist(p => p.filter(x => x !== s))} onPriceUpdate={handlePriceUpdate}/>}
+        {tab === "holdings"  && <HoldingsView key={priceVersion} holdings={holdings} onAdd={(h) => setHoldings(p => [...p, h])} onRemove={(id) => setHoldings(p => p.filter(x => x.id !== id))} onPriceUpdate={handlePriceUpdate} onSell={handleSell}/>}
+        {tab === "watchlist" && <WatchlistView key={priceVersion} watchlist={watchlist} onAdd={(s) => setWatchlist(p => [...p, s])} onRemove={(s) => setWatchlist(p => p.filter(x => x !== s))} onPriceUpdate={handlePriceUpdate} onSell={handleSell}/>}
+        {tab === "sold"      && <SoldView sold={sold} onDelete={handleDeleteSold}/>}
         {tab === "discover"  && <DiscoverView key={priceVersion}/>}
         {tab === "flow"      && <FlowView key={priceVersion}/>}
 
