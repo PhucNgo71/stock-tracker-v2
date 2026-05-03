@@ -1114,6 +1114,3 @@ export default function StockTrackerApp() {
     </div>
   );
 }
-    </div>
-  );
-}
