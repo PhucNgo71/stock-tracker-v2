@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   ResponsiveContainer, Tooltip, BarChart, Bar, Cell, XAxis, YAxis,
   LineChart, Line, Legend, ReferenceLine,
@@ -933,10 +933,53 @@ function FlowView() {
 // ROOT APP
 // ============================================================================
 export default function StockTrackerApp() {
-  const [tab, setTab] = useState("holdings");
-  const [holdings, setHoldings] = useState(SAMPLE_HOLDINGS);
-  const [watchlist, setWatchlist] = useState(["MWG", "ACB", "DGC"]);
+const [tab, setTab] = useState("holdings");
+  const [holdings, setHoldings] = useState(() => {
+    if (typeof window === "undefined") return SAMPLE_HOLDINGS;
+    try {
+      const saved = localStorage.getItem("ledger-holdings");
+      return saved ? JSON.parse(saved) : SAMPLE_HOLDINGS;
+    } catch { return SAMPLE_HOLDINGS; }
+  });
+  const [watchlist, setWatchlist] = useState(() => {
+    if (typeof window === "undefined") return ["MWG", "ACB", "DGC"];
+    try {
+      const saved = localStorage.getItem("ledger-watchlist");
+      return saved ? JSON.parse(saved) : ["MWG", "ACB", "DGC"];
+    } catch { return ["MWG", "ACB", "DGC"]; }
+  });
+  const [pricesLoaded, setPricesLoaded] = useState(false);
+  const [tradeDate, setTradeDate] = useState(null);
 
+  useEffect(() => {
+    fetch("/api/quotes")
+      .then(r => r.json())
+      .then(data => {
+        if (data?.quotes) {
+          for (const [sym, live] of Object.entries(data.quotes)) {
+            if (UNIVERSE[sym]) {
+              UNIVERSE[sym].price = live.price;
+              UNIVERSE[sym].change = live.change;
+              UNIVERSE[sym].changePct = live.changePct;
+            }
+          }
+          setTradeDate(data.tradeDate);
+        }
+        setPricesLoaded(true);
+      })
+      .catch(() => setPricesLoaded(true));
+  }, []);
+// Save holdings to localStorage whenever they change
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try { localStorage.setItem("ledger-holdings", JSON.stringify(holdings)); } catch {}
+  }, [holdings]);
+
+  // Save watchlist to localStorage whenever it changes
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try { localStorage.setItem("ledger-watchlist", JSON.stringify(watchlist)); } catch {}
+  }, [watchlist]);
   return (
     <div className="min-h-screen bg-[#16130f] text-stone-200" style={{ fontFamily: '"Inter", system-ui, sans-serif' }}>
       <div className="fixed inset-0 pointer-events-none opacity-[0.03]"
@@ -951,32 +994,42 @@ export default function StockTrackerApp() {
             <span className="text-stone-600 text-[10px] tracking-[0.3em] uppercase">Vietnam Equity Tracker</span>
           </div>
           <div className="flex items-center gap-4 text-[11px] text-stone-500">
+            {tradeDate && (
+              <div className="flex items-center gap-2">
+                <span className="text-stone-600 tracking-wider">LAST CLOSE</span>
+                <span className="text-amber-200 tabular-nums">{tradeDate.slice(0, 10)}</span>
+              </div>
+            )}
             <div className="flex items-center gap-2">
-              <span className="text-stone-600 tracking-wider">VN-INDEX</span>
-              <span className="text-emerald-400 tabular-nums">1,267.84</span>
-              <span className="text-emerald-400 tabular-nums">+0.42%</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"/>
-              <span className="tracking-wider">MARKET OPEN</span>
+              <span className={`w-1.5 h-1.5 rounded-full ${pricesLoaded ? "bg-emerald-400" : "bg-amber-400 animate-pulse"}`}/>
+              <span className="tracking-wider">{pricesLoaded ? "LIVE DATA" : "LOADING"}</span>
             </div>
           </div>
         </header>
 
-        <nav className="flex gap-1 mb-8 border-b border-stone-800/40 overflow-x-auto">
-          <Tab active={tab === "holdings"}  onClick={() => setTab("holdings")}  icon={Briefcase}>My Holdings</Tab>
-          <Tab active={tab === "watchlist"} onClick={() => setTab("watchlist")} icon={Eye}>Watchlist</Tab>
-          <Tab active={tab === "discover"}  onClick={() => setTab("discover")}  icon={Compass}>Discover</Tab>
-          <Tab active={tab === "flow"}      onClick={() => setTab("flow")}      icon={Activity}>Market Flow</Tab>
-        </nav>
+        {!pricesLoaded ? (
+          <div className="text-center py-20 text-stone-500">
+            <div className="inline-block w-6 h-6 border-2 border-stone-700 border-t-amber-300 rounded-full animate-spin mb-3"/>
+            <div>Fetching live prices from TCBS...</div>
+          </div>
+        ) : (
+          <>
+            <nav className="flex gap-1 mb-8 border-b border-stone-800/40 overflow-x-auto">
+              <Tab active={tab === "holdings"}  onClick={() => setTab("holdings")}  icon={Briefcase}>My Holdings</Tab>
+              <Tab active={tab === "watchlist"} onClick={() => setTab("watchlist")} icon={Eye}>Watchlist</Tab>
+              <Tab active={tab === "discover"}  onClick={() => setTab("discover")}  icon={Compass}>Discover</Tab>
+              <Tab active={tab === "flow"}      onClick={() => setTab("flow")}      icon={Activity}>Market Flow</Tab>
+            </nav>
 
-        {tab === "holdings"  && <HoldingsView holdings={holdings} onAdd={(h) => setHoldings(p => [...p, h])} onRemove={(id) => setHoldings(p => p.filter(x => x.id !== id))}/>}
-        {tab === "watchlist" && <WatchlistView watchlist={watchlist} onAdd={(s) => setWatchlist(p => [...p, s])} onRemove={(s) => setWatchlist(p => p.filter(x => x !== s))}/>}
-        {tab === "discover"  && <DiscoverView/>}
-        {tab === "flow"      && <FlowView/>}
+            {tab === "holdings"  && <HoldingsView holdings={holdings} onAdd={(h) => setHoldings(p => [...p, h])} onRemove={(id) => setHoldings(p => p.filter(x => x.id !== id))}/>}
+            {tab === "watchlist" && <WatchlistView watchlist={watchlist} onAdd={(s) => setWatchlist(p => [...p, s])} onRemove={(s) => setWatchlist(p => p.filter(x => x !== s))}/>}
+            {tab === "discover"  && <DiscoverView/>}
+            {tab === "flow"      && <FlowView/>}
+          </>
+        )}
 
         <footer className="mt-12 pt-5 border-t border-stone-800/60 flex items-center justify-between text-[10px] text-stone-600 tracking-wider uppercase">
-          <span>Data: TCBS · VNDirect · HSX · Delayed 15 min</span>
+          <span>Prices: TCBS (last close) · Ratios: mock data</span>
           <span>Ledger · Vietnam Markets</span>
         </footer>
       </div>
