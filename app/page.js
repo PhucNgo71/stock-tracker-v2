@@ -83,7 +83,7 @@ function EditablePrice({ symbol, currentPrice, onUpdate, className = "" }) {
           if (e.key === "Enter") save();
           if (e.key === "Escape") cancel();
         }}
-        className={`bg-amber-100/10 border border-amber-200/40 px-2 py-0.5 outline-none text-amber-100 tabular-nums w-24 ${className}`}
+        className={`bg-amber-50 border border-amber-400/40 px-2 py-0.5 outline-none text-amber-800 tabular-nums w-24 ${className}`}
         onClick={(e) => e.stopPropagation()}
       />
     );
@@ -91,7 +91,7 @@ function EditablePrice({ symbol, currentPrice, onUpdate, className = "" }) {
   return (
     <span
       onClick={startEdit}
-      className={`cursor-pointer hover:bg-amber-100/5 hover:ring-1 hover:ring-amber-200/30 px-1 rounded-sm tabular-nums transition-all ${className}`}
+      className={`cursor-pointer hover:bg-amber-50 hover:ring-1 hover:ring-amber-400/40 px-1 rounded-sm tabular-nums transition-all ${className}`}
       title="Click to edit price"
     >
       {new Intl.NumberFormat("vi-VN").format(Math.round(currentPrice))}
@@ -210,8 +210,12 @@ const fmtVND = (v) => v == null ? "—" : new Intl.NumberFormat("vi-VN").format(
 const fmtPct = (v) => v == null ? "—" : `${v >= 0 ? "+" : ""}${v.toFixed(2)}%`;
 const fmtFlow = (v) => `${v >= 0 ? "+" : ""}${v.toFixed(1)}`;
 const daysBetween = (a, b) => {
-  const end = b ? new Date(b) : Date.now();
-  return Math.floor((end - new Date(a).getTime()) / 86400000);
+  if (!a) return 0;
+  const start = new Date(a);
+  if (isNaN(start.getTime())) return 0;
+  const end = b ? new Date(b) : new Date();
+  if (isNaN(end.getTime())) return 0;
+  return Math.max(0, Math.floor((end.getTime() - start.getTime()) / 86400000));
 };
 
 function computePosition(h) {
@@ -220,10 +224,11 @@ function computePosition(h) {
   const cost = h.quantity * h.buyPrice;
   const currentValue = h.quantity * stock.price;
   const gain = currentValue - cost;
-  const gainPct = (gain / cost) * 100;
+  const gainPct = cost > 0 ? (gain / cost) * 100 : 0;
   const todayGain = h.quantity * stock.change;
+  const todayUp = stock.change >= 0;
   const days = daysBetween(h.buyDate);
-  return { ...h, stock, cost, currentValue, gain, gainPct, todayGain, days };
+  return { ...h, stock, cost, currentValue, gain, gainPct, todayGain, todayUp, days };
 }
 
 const SERIF = { fontFamily: '"Cormorant Garamond", Georgia, serif' };
@@ -239,8 +244,8 @@ const SECTOR_COLORS = {
 function Tab({ active, onClick, icon: Icon, children }) {
   return (
     <button onClick={onClick}
-      className={`flex items-center gap-2 px-4 py-2.5 text-xs tracking-[0.15em] uppercase transition-all border-b-2 whitespace-nowrap ${
-        active ? "text-amber-100 border-amber-200/60" : "text-stone-500 border-transparent hover:text-stone-300"
+      className={`flex items-center gap-2 px-4 py-2.5 text-sm tracking-[0.15em] uppercase transition-all border-b-2 whitespace-nowrap ${
+        active ? "text-amber-800 border-amber-400/60" : "text-stone-500 border-transparent hover:text-stone-400"
       }`}>
       <Icon className="w-3.5 h-3.5" />
       {children}
@@ -249,23 +254,23 @@ function Tab({ active, onClick, icon: Icon, children }) {
 }
 
 function Stat({ label, value, sub, tone = "default" }) {
-  const toneClass = tone === "good" ? "text-emerald-300" : tone === "bad" ? "text-rose-300" : "text-stone-100";
+  const toneClass = tone === "good" ? "text-emerald-700" : tone === "bad" ? "text-rose-700" : "text-stone-900";
   return (
     <div>
-      <div className="text-[10px] text-stone-500 tracking-[0.2em] uppercase mb-1">{label}</div>
-      <div className={`font-serif text-xl ${toneClass} tabular-nums`} style={SERIF}>{value}</div>
-      {sub && <div className="text-[11px] text-stone-500 mt-0.5 tabular-nums">{sub}</div>}
+      <div className="text-xs text-stone-500 tracking-[0.2em] uppercase mb-1">{label}</div>
+      <div className={`font-serif text-2xl ${toneClass} tabular-nums`} style={SERIF}>{value}</div>
+      {sub && <div className="text-sm text-stone-500 mt-0.5 tabular-nums">{sub}</div>}
     </div>
   );
 }
 
 function Section({ title, subtitle, children, action }) {
   return (
-    <div className="bg-stone-900/40 border border-stone-800/60 p-5 rounded-sm">
-      <div className="mb-4 pb-3 border-b border-stone-800/60 flex items-center justify-between">
+    <div className="bg-white/60 border border-stone-300/60 p-5 rounded-sm">
+      <div className="mb-4 pb-3 border-b border-stone-300/60 flex items-center justify-between">
         <div>
-          <h3 className="font-serif text-lg text-amber-100/90" style={SERIF}>{title}</h3>
-          {subtitle && <p className="text-stone-500 text-[11px] italic mt-0.5">{subtitle}</p>}
+          <h3 className="font-serif text-xl text-amber-800/90" style={SERIF}>{title}</h3>
+          {subtitle && <p className="text-stone-500 text-sm italic mt-0.5">{subtitle}</p>}
         </div>
         {action}
       </div>
@@ -276,11 +281,11 @@ function Section({ title, subtitle, children, action }) {
 
 function PillToggle({ value, onChange, options }) {
   return (
-    <div className="flex border border-stone-800 rounded-sm overflow-hidden">
+    <div className="flex border border-stone-300 rounded-sm overflow-hidden">
       {options.map(opt => (
         <button key={opt.value} onClick={() => onChange(opt.value)}
-          className={`px-4 py-2 text-xs tracking-wider uppercase transition-colors whitespace-nowrap ${
-            value === opt.value ? "bg-amber-100/10 text-amber-100" : "text-stone-500 hover:text-stone-300"
+          className={`px-4 py-2 text-sm tracking-wider uppercase transition-colors whitespace-nowrap ${
+            value === opt.value ? "bg-amber-50 text-amber-800" : "text-stone-500 hover:text-stone-400"
           }`}>
           {opt.label}
         </button>
@@ -311,54 +316,54 @@ function SellDialog({ position, onSell, onRemove, onCancel }) {
 
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-      <div className="bg-[#1c1814] border border-stone-700 p-6 rounded-sm w-full max-w-md">
+      <div className="bg-[#ffffff] border border-stone-300 p-6 rounded-sm w-full max-w-md">
         <div className="flex items-center justify-between mb-5">
-          <h3 className="font-serif text-xl text-amber-100" style={SERIF}>Close Position — {position.symbol}</h3>
-          <button onClick={onCancel} className="text-stone-500 hover:text-stone-300"><X className="w-4 h-4"/></button>
+          <h3 className="font-serif text-2xl text-amber-800" style={SERIF}>Close Position — {position.symbol}</h3>
+          <button onClick={onCancel} className="text-stone-500 hover:text-stone-400"><X className="w-4 h-4"/></button>
         </div>
-        <div className="grid grid-cols-2 gap-3 mb-5 text-sm">
-          <div className="bg-stone-900/60 p-3 rounded-sm">
-            <div className="text-[10px] text-stone-500 tracking-wider uppercase mb-1">Quantity</div>
-            <div className="tabular-nums text-stone-200">{fmtVND(position.quantity)}</div>
+        <div className="grid grid-cols-2 gap-3 mb-5 text-base">
+          <div className="bg-white/80 p-3 rounded-sm">
+            <div className="text-xs text-stone-500 tracking-wider uppercase mb-1">Quantity</div>
+            <div className="tabular-nums text-stone-800">{fmtVND(position.quantity)}</div>
           </div>
-          <div className="bg-stone-900/60 p-3 rounded-sm">
-            <div className="text-[10px] text-stone-500 tracking-wider uppercase mb-1">Buy Price</div>
-            <div className="tabular-nums text-stone-200">{fmtVND(position.buyPrice)} ₫</div>
+          <div className="bg-white/80 p-3 rounded-sm">
+            <div className="text-xs text-stone-500 tracking-wider uppercase mb-1">Buy Price</div>
+            <div className="tabular-nums text-stone-800">{fmtVND(position.buyPrice)} ₫</div>
           </div>
         </div>
         <div className="space-y-3 mb-5">
           <div>
-            <label className="text-[10px] text-stone-500 tracking-wider uppercase">Sell Price (₫)</label>
+            <label className="text-xs text-stone-500 tracking-wider uppercase">Sell Price (₫)</label>
             <input value={sellPrice} onChange={e => { setSellPrice(e.target.value); setError(""); }}
-              className="w-full mt-1 bg-stone-900 border border-stone-700 px-3 py-2 text-sm tabular-nums focus:outline-none focus:border-amber-200/40"
+              className="w-full mt-1 bg-white border border-stone-300 px-3 py-2 text-base tabular-nums focus:outline-none focus:border-amber-400/40"
               placeholder="Enter sell price"/>
           </div>
           <div>
-            <label className="text-[10px] text-stone-500 tracking-wider uppercase">Sell Date</label>
+            <label className="text-xs text-stone-500 tracking-wider uppercase">Sell Date</label>
             <input type="date" value={sellDate} onChange={e => setSellDate(e.target.value)}
-              className="w-full mt-1 bg-stone-900 border border-stone-700 px-3 py-2 text-sm focus:outline-none focus:border-amber-200/40"/>
+              className="w-full mt-1 bg-white border border-stone-300 px-3 py-2 text-base focus:outline-none focus:border-amber-400/40"/>
           </div>
         </div>
         {validPrice && (
-          <div className={`mb-5 p-3 rounded-sm border ${pnl >= 0 ? "border-emerald-500/30 bg-emerald-900/10" : "border-rose-500/30 bg-rose-900/10"}`}>
-            <div className="text-[10px] text-stone-500 tracking-wider uppercase mb-2">Realized P&amp;L Preview</div>
-            <div className={`font-serif text-2xl tabular-nums ${pnl >= 0 ? "text-emerald-300" : "text-rose-300"}`} style={SERIF}>
+          <div className={`mb-5 p-3 rounded-sm border ${pnl >= 0 ? "border-emerald-400/40 bg-emerald-50" : "border-rose-400/40 bg-rose-50"}`}>
+            <div className="text-xs text-stone-500 tracking-wider uppercase mb-2">Realized P&amp;L Preview</div>
+            <div className={`font-serif text-3xl tabular-nums ${pnl >= 0 ? "text-emerald-700" : "text-rose-700"}`} style={SERIF}>
               {pnl >= 0 ? "+" : ""}{fmtVND(pnl)} ₫
             </div>
-            <div className={`text-sm tabular-nums mt-0.5 ${pnl >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+            <div className={`text-base tabular-nums mt-0.5 ${pnl >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
               {fmtPct(pnlPct)} · Proceeds: {fmtVND(proceeds)} ₫
             </div>
           </div>
         )}
-        {error && <div className="mb-3 text-xs text-rose-300">{error}</div>}
+        {error && <div className="mb-3 text-sm text-rose-700">{error}</div>}
         <div className="flex gap-2">
-          <button onClick={handleSell} className="flex-1 py-2 bg-amber-100/10 border border-amber-200/30 text-amber-100 text-xs tracking-wider uppercase hover:bg-amber-100/20">
+          <button onClick={handleSell} className="flex-1 py-2 bg-amber-50 border border-amber-400/40 text-amber-800 text-sm tracking-wider uppercase hover:bg-amber-100">
             Record Sale
           </button>
-          <button onClick={onRemove} className="px-4 py-2 border border-stone-700 text-stone-400 text-xs tracking-wider uppercase hover:text-rose-300 hover:border-rose-400/30">
+          <button onClick={onRemove} className="px-4 py-2 border border-stone-300 text-stone-500 text-sm tracking-wider uppercase hover:text-rose-700 hover:border-rose-400/30">
             Just Remove
           </button>
-          <button onClick={onCancel} className="px-4 py-2 border border-stone-800 text-stone-500 text-xs tracking-wider uppercase hover:text-stone-300">
+          <button onClick={onCancel} className="px-4 py-2 border border-stone-300 text-stone-500 text-sm tracking-wider uppercase hover:text-stone-400">
             Cancel
           </button>
         </div>
@@ -382,9 +387,9 @@ function SoldView({ soldPositions, onClear }) {
   if (!soldPositions.length) {
     return (
       <div className="text-center py-20">
-        <DollarSign className="w-12 h-12 mx-auto text-stone-700 mb-4" />
-        <p className="text-stone-400">No closed positions yet.</p>
-        <p className="text-stone-600 text-sm mt-1">When you sell a holding it will appear here.</p>
+        <DollarSign className="w-12 h-12 mx-auto text-stone-400 mb-4" />
+        <p className="text-stone-500">No closed positions yet.</p>
+        <p className="text-stone-500 text-base mt-1">When you sell a holding it will appear here.</p>
       </div>
     );
   }
@@ -393,36 +398,36 @@ function SoldView({ soldPositions, onClear }) {
 
   return (
     <div className="space-y-8">
-      <div className="bg-gradient-to-br from-stone-900/60 to-stone-900/20 border border-stone-800/60 p-7 rounded-sm">
+      <div className="bg-gradient-to-br from-white/90 to-amber-50/40 border border-stone-300/60 p-7 rounded-sm">
         <div className="flex items-start justify-between mb-5">
           <div>
-            <div className="text-[10px] text-stone-500 tracking-[0.3em] uppercase">Total Realized P&amp;L</div>
-            <div className={`font-serif text-5xl tabular-nums mt-1 ${totals.totalPnl >= 0 ? "text-emerald-300" : "text-rose-300"}`} style={SERIF}>
-              {totals.totalPnl >= 0 ? "+" : ""}{fmtVND(totals.totalPnl)} <span className="text-xl text-stone-500">₫</span>
+            <div className="text-xs text-stone-500 tracking-[0.3em] uppercase">Total Realized P&amp;L</div>
+            <div className={`font-serif text-6xl tabular-nums mt-1 ${totals.totalPnl >= 0 ? "text-emerald-700" : "text-rose-700"}`} style={SERIF}>
+              {totals.totalPnl >= 0 ? "+" : ""}{fmtVND(totals.totalPnl)} <span className="text-2xl text-stone-500">₫</span>
             </div>
-            <div className={`text-sm mt-1 tabular-nums ${totals.totalPnl >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+            <div className={`text-base mt-1 tabular-nums ${totals.totalPnl >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
               {fmtPct(totals.totalPnlPct)} overall
             </div>
           </div>
-          <button onClick={onClear} className="text-stone-600 hover:text-rose-400 text-xs tracking-wider uppercase border border-stone-800 hover:border-rose-400/30 px-3 py-1.5">
+          <button onClick={onClear} className="text-stone-500 hover:text-rose-600 text-sm tracking-wider uppercase border border-stone-300 hover:border-rose-400/30 px-3 py-1.5">
             Clear All
           </button>
         </div>
-        <div className="grid grid-cols-3 gap-6 pt-5 border-t border-stone-800/60">
+        <div className="grid grid-cols-3 gap-6 pt-5 border-t border-stone-300/60">
           <Stat label="Closed Positions" value={totals.total} />
           <Stat label="Winners" value={totals.winners} sub={`${((totals.winners / totals.total) * 100).toFixed(0)}% win rate`} tone="good" />
           <Stat label="Losers" value={totals.total - totals.winners} tone={totals.total - totals.winners > 0 ? "bad" : "default"} />
         </div>
       </div>
 
-      <div className="bg-stone-900/40 border border-stone-800/60 rounded-sm overflow-hidden">
-        <div className="p-5 border-b border-stone-800/60">
-          <h3 className="font-serif text-lg text-amber-100/90" style={SERIF}>Closed Positions</h3>
+      <div className="bg-white/60 border border-stone-300/60 rounded-sm overflow-hidden">
+        <div className="p-5 border-b border-stone-300/60">
+          <h3 className="font-serif text-xl text-amber-800/90" style={SERIF}>Closed Positions</h3>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-base">
             <thead>
-              <tr className="text-[10px] tracking-[0.15em] uppercase text-stone-500 border-b border-stone-800/60">
+              <tr className="text-xs tracking-[0.15em] uppercase text-stone-500 border-b border-stone-300/60">
                 <th className="text-left p-4 font-normal">Stock</th>
                 <th className="text-right p-4 font-normal">Qty</th>
                 <th className="text-right p-4 font-normal">Buy Price</th>
@@ -436,21 +441,21 @@ function SoldView({ soldPositions, onClear }) {
             </thead>
             <tbody>
               {sorted.map((p, i) => (
-                <tr key={i} className="border-b border-stone-800/40 hover:bg-stone-900/40 transition-colors">
+                <tr key={i} className="border-b border-stone-300/40 hover:bg-white/60 transition-colors">
                   <td className="p-4">
-                    <div className="font-serif text-base text-amber-100" style={SERIF}>{p.symbol}</div>
-                    <div className="text-[11px] text-stone-500">{UNIVERSE[p.symbol] ? UNIVERSE[p.symbol].name : p.symbol}</div>
+                    <div className="font-serif text-lg text-amber-800" style={SERIF}>{p.symbol}</div>
+                    <div className="text-sm text-stone-500">{UNIVERSE[p.symbol] ? UNIVERSE[p.symbol].name : p.symbol}</div>
                   </td>
                   <td className="text-right p-4 tabular-nums">{fmtVND(p.quantity)}</td>
-                  <td className="text-right p-4 tabular-nums text-stone-400">{fmtVND(p.buyPrice)}</td>
-                  <td className="text-right p-4 tabular-nums text-stone-200">{fmtVND(p.sellPrice)}</td>
+                  <td className="text-right p-4 tabular-nums text-stone-500">{fmtVND(p.buyPrice)}</td>
+                  <td className="text-right p-4 tabular-nums text-stone-800">{fmtVND(p.sellPrice)}</td>
                   <td className="text-right p-4 tabular-nums text-stone-500">{p.buyDate}</td>
                   <td className="text-right p-4 tabular-nums text-stone-500">{p.sellDate}</td>
                   <td className="text-right p-4 tabular-nums text-stone-500">{daysBetween(p.buyDate, p.sellDate)}</td>
-                  <td className={`text-right p-4 tabular-nums ${p.realizedPnl >= 0 ? "text-emerald-300" : "text-rose-300"}`}>
+                  <td className={`text-right p-4 tabular-nums ${p.realizedPnl >= 0 ? "text-emerald-700" : "text-rose-700"}`}>
                     {p.realizedPnl >= 0 ? "+" : ""}{fmtVND(p.realizedPnl)}
                   </td>
-                  <td className={`text-right p-4 tabular-nums font-medium ${p.roiPct >= 0 ? "text-emerald-300" : "text-rose-300"}`}>
+                  <td className={`text-right p-4 tabular-nums font-medium ${p.roiPct >= 0 ? "text-emerald-700" : "text-rose-700"}`}>
                     {fmtPct(p.roiPct)}
                   </td>
                 </tr>
@@ -482,35 +487,35 @@ function AddHoldingForm({ onAdd, onCancel }) {
   };
 
   return (
-    <div className="bg-stone-900/60 border border-amber-200/20 p-5 rounded-sm">
+    <div className="bg-white/80 border border-amber-300/40 p-5 rounded-sm">
       <div className="flex items-center justify-between mb-4">
-        <h4 className="font-serif text-lg text-amber-100" style={SERIF}>Add Holding</h4>
-        <button onClick={onCancel} className="text-stone-500 hover:text-stone-300"><X className="w-4 h-4"/></button>
+        <h4 className="font-serif text-xl text-amber-800" style={SERIF}>Add Holding</h4>
+        <button onClick={onCancel} className="text-stone-500 hover:text-stone-400"><X className="w-4 h-4"/></button>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
         <div>
-          <label className="text-[10px] text-stone-500 tracking-wider uppercase">Ticker</label>
+          <label className="text-xs text-stone-500 tracking-wider uppercase">Ticker</label>
           <input value={symbol} onChange={e => setSymbol(e.target.value.toUpperCase())} placeholder="FPT"
-            className="w-full mt-1 bg-stone-900 border border-stone-800 px-3 py-2 text-sm focus:outline-none focus:border-amber-200/30"/>
+            className="w-full mt-1 bg-white border border-stone-300 px-3 py-2 text-base focus:outline-none focus:border-amber-400/40"/>
         </div>
         <div>
-          <label className="text-[10px] text-stone-500 tracking-wider uppercase">Quantity</label>
+          <label className="text-xs text-stone-500 tracking-wider uppercase">Quantity</label>
           <input value={quantity} onChange={e => setQuantity(e.target.value)} type="number" placeholder="100"
-            className="w-full mt-1 bg-stone-900 border border-stone-800 px-3 py-2 text-sm tabular-nums focus:outline-none focus:border-amber-200/30"/>
+            className="w-full mt-1 bg-white border border-stone-300 px-3 py-2 text-base tabular-nums focus:outline-none focus:border-amber-400/40"/>
         </div>
         <div>
-          <label className="text-[10px] text-stone-500 tracking-wider uppercase">Buy Price (₫)</label>
+          <label className="text-xs text-stone-500 tracking-wider uppercase">Buy Price (₫)</label>
           <input value={buyPrice} onChange={e => setBuyPrice(e.target.value)} type="number" placeholder="105000"
-            className="w-full mt-1 bg-stone-900 border border-stone-800 px-3 py-2 text-sm tabular-nums focus:outline-none focus:border-amber-200/30"/>
+            className="w-full mt-1 bg-white border border-stone-300 px-3 py-2 text-base tabular-nums focus:outline-none focus:border-amber-400/40"/>
         </div>
         <div>
-          <label className="text-[10px] text-stone-500 tracking-wider uppercase">Buy Date</label>
+          <label className="text-xs text-stone-500 tracking-wider uppercase">Buy Date</label>
           <input value={buyDate} onChange={e => setBuyDate(e.target.value)} type="date"
-            className="w-full mt-1 bg-stone-900 border border-stone-800 px-3 py-2 text-sm focus:outline-none focus:border-amber-200/30"/>
+            className="w-full mt-1 bg-white border border-stone-300 px-3 py-2 text-base focus:outline-none focus:border-amber-400/40"/>
         </div>
       </div>
-      {error && <div className="mt-3 text-xs text-rose-300">{error}</div>}
-      <button onClick={submit} className="mt-3 px-4 py-2 bg-amber-100/10 border border-amber-200/30 text-amber-100 text-xs tracking-wider uppercase hover:bg-amber-100/20">Confirm</button>
+      {error && <div className="mt-3 text-sm text-rose-700">{error}</div>}
+      <button onClick={submit} className="mt-3 px-4 py-2 bg-amber-50 border border-amber-400/40 text-amber-800 text-sm tracking-wider uppercase hover:bg-amber-100">Confirm</button>
     </div>
   );
 }
@@ -525,17 +530,17 @@ function AddWatchForm({ existing, onAdd, onCancel }) {
     onAdd(sym);
   };
   return (
-    <div className="bg-stone-900/60 border border-amber-200/20 p-5 rounded-sm">
+    <div className="bg-white/80 border border-amber-300/40 p-5 rounded-sm">
       <div className="flex items-center justify-between mb-4">
-        <h4 className="font-serif text-lg text-amber-100" style={SERIF}>Add to Watchlist</h4>
-        <button onClick={onCancel} className="text-stone-500 hover:text-stone-300"><X className="w-4 h-4"/></button>
+        <h4 className="font-serif text-xl text-amber-800" style={SERIF}>Add to Watchlist</h4>
+        <button onClick={onCancel} className="text-stone-500 hover:text-stone-400"><X className="w-4 h-4"/></button>
       </div>
       <div className="flex gap-3">
         <input value={symbol} onChange={e => { setSymbol(e.target.value.toUpperCase()); setError(""); }} placeholder="Ticker (e.g. MWG)"
-          className="flex-1 bg-stone-900 border border-stone-800 px-3 py-2 text-sm focus:outline-none focus:border-amber-200/30"/>
-        <button onClick={submit} className="px-4 py-2 bg-amber-100/10 border border-amber-200/30 text-amber-100 text-xs tracking-wider uppercase hover:bg-amber-100/20">Add</button>
+          className="flex-1 bg-white border border-stone-300 px-3 py-2 text-base focus:outline-none focus:border-amber-400/40"/>
+        <button onClick={submit} className="px-4 py-2 bg-amber-50 border border-amber-400/40 text-amber-800 text-sm tracking-wider uppercase hover:bg-amber-100">Add</button>
       </div>
-      {error && <div className="mt-3 text-xs text-rose-300">{error}</div>}
+      {error && <div className="mt-3 text-sm text-rose-700">{error}</div>}
     </div>
   );
 }
@@ -575,10 +580,10 @@ function HoldingsView({ holdings, onAdd, onRemove, onSell, onPriceUpdate }) {
     return (
       <div>
         <div className="text-center py-20">
-          <Briefcase className="w-12 h-12 mx-auto text-stone-700 mb-4" />
-          <p className="text-stone-400 mb-6">No holdings yet. Add your first position.</p>
+          <Briefcase className="w-12 h-12 mx-auto text-stone-400 mb-4" />
+          <p className="text-stone-500 mb-6">No holdings yet. Add your first position.</p>
           {!showForm && (
-            <button onClick={() => setShowForm(true)} className="px-5 py-2 bg-amber-100/10 border border-amber-200/30 text-amber-100 text-xs tracking-wider uppercase hover:bg-amber-100/20">Add Holding</button>
+            <button onClick={() => setShowForm(true)} className="px-5 py-2 bg-amber-50 border border-amber-400/40 text-amber-800 text-sm tracking-wider uppercase hover:bg-amber-100">Add Holding</button>
           )}
         </div>
         {showForm && <AddHoldingForm onAdd={(h) => { onAdd(h); setShowForm(false); }} onCancel={() => setShowForm(false)} />}
@@ -597,25 +602,25 @@ function HoldingsView({ holdings, onAdd, onRemove, onSell, onPriceUpdate }) {
         />
       )}
 
-      <div className="bg-gradient-to-br from-stone-900/60 to-stone-900/20 border border-stone-800/60 p-7 rounded-sm">
+      <div className="bg-gradient-to-br from-white/90 to-amber-50/40 border border-stone-300/60 p-7 rounded-sm">
         <div className="flex items-start justify-between mb-5">
           <div>
-            <div className="text-[10px] text-stone-500 tracking-[0.3em] uppercase">Portfolio Value</div>
-            <div className="font-serif text-5xl text-stone-100 tabular-nums mt-1" style={SERIF}>
-              {fmtVND(totals.value)} <span className="text-xl text-stone-500">₫</span>
+            <div className="text-xs text-stone-500 tracking-[0.3em] uppercase">Portfolio Value</div>
+            <div className="font-serif text-6xl text-stone-900 tabular-nums mt-1" style={SERIF}>
+              {fmtVND(totals.value)} <span className="text-2xl text-stone-500">₫</span>
             </div>
-            <div className={`flex items-center gap-2 mt-2 ${totals.gain >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+            <div className={`flex items-center gap-2 mt-2 ${totals.gain >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
               {totals.gain >= 0 ? <TrendingUp className="w-4 h-4"/> : <TrendingDown className="w-4 h-4"/>}
               <span className="tabular-nums">{totals.gain >= 0 ? "+" : ""}{fmtVND(totals.gain)} ₫ ({fmtPct(totals.gainPct)})</span>
-              <span className="text-stone-600 mx-2">·</span>
-              <span className="text-stone-400 text-sm">all-time</span>
+              <span className="text-stone-500 mx-2">·</span>
+              <span className="text-stone-500 text-base">all-time</span>
             </div>
           </div>
-          <button onClick={() => setShowForm(true)} className="flex items-center gap-1.5 px-4 py-2 bg-amber-100/10 border border-amber-200/30 text-amber-100 text-xs tracking-wider uppercase hover:bg-amber-100/20">
+          <button onClick={() => setShowForm(true)} className="flex items-center gap-1.5 px-4 py-2 bg-amber-50 border border-amber-400/40 text-amber-800 text-sm tracking-wider uppercase hover:bg-amber-100">
             <Plus className="w-3.5 h-3.5"/> Add
           </button>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 pt-5 border-t border-stone-800/60">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 pt-5 border-t border-stone-300/60">
           <Stat label="Invested" value={`${fmtVND(totals.cost)} ₫`} />
           <Stat label="Today's P&L" value={`${totals.todayGain >= 0 ? "+" : ""}${fmtVND(totals.todayGain)} ₫`} sub={fmtPct(totals.todayPct)} tone={totals.todayGain >= 0 ? "good" : "bad"} />
           <Stat label="Positions" value={positions.length} />
@@ -630,9 +635,9 @@ function HoldingsView({ holdings, onAdd, onRemove, onSell, onPriceUpdate }) {
           <Section title="Contribution to Portfolio" subtitle="Each position's gain as % of total invested capital">
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={contribData} layout="vertical" margin={{ left: 20 }}>
-                <XAxis type="number" axisLine={false} tickLine={false} tick={{ fill: "#78716c", fontSize: 10 }} tickFormatter={v => `${v.toFixed(1)}%`} />
-                <YAxis dataKey="symbol" type="category" axisLine={false} tickLine={false} tick={{ fill: "#a8a29e", fontSize: 12 }} width={50} />
-                <Tooltip contentStyle={{ background: "#1c1814", border: "1px solid #44403c", borderRadius: 2, fontSize: 12 }} formatter={(v) => [`${v.toFixed(2)}%`, "Contribution"]} cursor={{ fill: "rgba(255,255,255,0.03)" }} />
+                <XAxis type="number" axisLine={false} tickLine={false} tick={{ fill: "#92897f", fontSize: 10 }} tickFormatter={v => `${v.toFixed(1)}%`} />
+                <YAxis dataKey="symbol" type="category" axisLine={false} tickLine={false} tick={{ fill: "#78716c", fontSize: 12 }} width={50} />
+                <Tooltip contentStyle={{ background: "#ffffff", border: "1px solid #d6d3d1", borderRadius: 2, fontSize: 12 }} formatter={(v) => [`${v.toFixed(2)}%`, "Contribution"]} cursor={{ fill: "rgba(0,0,0,0.03)" }} />
                 <Bar dataKey="contribPct" radius={[0, 2, 2, 0]}>
                   {contribData.map((d, i) => <Cell key={i} fill={d.contribPct >= 0 ? "#7ec488" : "#d97a7a"} />)}
                 </Bar>
@@ -641,27 +646,27 @@ function HoldingsView({ holdings, onAdd, onRemove, onSell, onPriceUpdate }) {
           </Section>
         </div>
         <div className="col-span-12 lg:col-span-4">
-          <Section title="Top Performer" action={<Award className="w-4 h-4 text-amber-200"/>}>
-            <div className="font-serif text-4xl text-amber-100 mb-1" style={SERIF}>{best.symbol}</div>
-            <div className="text-sm text-stone-400 mb-4">{best.stock.name}</div>
-            <div className="space-y-2 text-sm">
+          <Section title="Top Performer" action={<Award className="w-4 h-4 text-amber-700"/>}>
+            <div className="font-serif text-5xl text-amber-800 mb-1" style={SERIF}>{best.symbol}</div>
+            <div className="text-base text-stone-500 mb-4">{best.stock.name}</div>
+            <div className="space-y-2 text-base">
               <div className="flex justify-between"><span className="text-stone-500">Bought</span><span className="tabular-nums">{fmtVND(best.buyPrice)} ₫</span></div>
               <div className="flex justify-between"><span className="text-stone-500">Current</span><span className="tabular-nums">{fmtVND(best.stock.price)} ₫</span></div>
-              <div className="flex justify-between"><span className="text-stone-500">ROI</span><span className="text-emerald-300 tabular-nums">{fmtPct(best.gainPct)}</span></div>
+              <div className="flex justify-between"><span className="text-stone-500">ROI</span><span className="text-emerald-700 tabular-nums">{fmtPct(best.gainPct)}</span></div>
               <div className="flex justify-between"><span className="text-stone-500">Held</span><span className="tabular-nums">{best.days} days</span></div>
             </div>
           </Section>
         </div>
       </div>
 
-      <div className="bg-stone-900/40 border border-stone-800/60 rounded-sm overflow-hidden">
-        <div className="p-5 border-b border-stone-800/60">
-          <h3 className="font-serif text-lg text-amber-100/90" style={SERIF}>Positions</h3>
+      <div className="bg-white/60 border border-stone-300/60 rounded-sm overflow-hidden">
+        <div className="p-5 border-b border-stone-300/60">
+          <h3 className="font-serif text-xl text-amber-800/90" style={SERIF}>Positions</h3>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-base">
             <thead>
-              <tr className="text-[10px] tracking-[0.15em] uppercase text-stone-500 border-b border-stone-800/60">
+              <tr className="text-xs tracking-[0.15em] uppercase text-stone-500 border-b border-stone-300/60">
                 <th className="text-left p-4 font-normal">Stock</th>
                 <th className="text-right p-4 font-normal">Qty</th>
                 <th className="text-right p-4 font-normal">Buy</th>
@@ -676,29 +681,29 @@ function HoldingsView({ holdings, onAdd, onRemove, onSell, onPriceUpdate }) {
             </thead>
             <tbody>
               {sorted.map((p) => (
-                <tr key={p.id} className="border-b border-stone-800/40 hover:bg-stone-900/40 transition-colors">
+                <tr key={p.id} className="border-b border-stone-300/40 hover:bg-white/60 transition-colors">
                   <td className="p-4">
-                    <div className="font-serif text-base text-amber-100" style={SERIF}>{p.symbol}</div>
-                    <div className="text-[11px] text-stone-500">{p.stock.name}</div>
+                    <div className="font-serif text-lg text-amber-800" style={SERIF}>{p.symbol}</div>
+                    <div className="text-sm text-stone-500">{p.stock.name}</div>
                   </td>
                   <td className="text-right p-4 tabular-nums">{fmtVND(p.quantity)}</td>
-                  <td className="text-right p-4 tabular-nums text-stone-400">{fmtVND(p.buyPrice)}</td>
+                  <td className="text-right p-4 tabular-nums text-stone-500">{fmtVND(p.buyPrice)}</td>
                   <td className="text-right p-4">
                     <EditablePrice symbol={p.symbol} currentPrice={p.stock.price} onUpdate={onPriceUpdate} />
                   </td>
                   <td className="text-right p-4 tabular-nums">{fmtVND(p.currentValue)}</td>
-                  <td className={`text-right p-4 tabular-nums text-xs ${p.todayGain >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
-                    {p.todayGain >= 0 ? "+" : ""}{fmtVND(p.todayGain)}
+                  <td className={`text-right p-4 tabular-nums text-sm ${p.todayUp ? "text-emerald-600" : "text-rose-600"}`}>
+                    {p.todayUp ? "+" : ""}{fmtVND(Math.abs(p.todayGain))}
                   </td>
-                  <td className={`text-right p-4 tabular-nums ${p.gain >= 0 ? "text-emerald-300" : "text-rose-300"}`}>
+                  <td className={`text-right p-4 tabular-nums ${p.gain >= 0 ? "text-emerald-700" : "text-rose-700"}`}>
                     {p.gain >= 0 ? "+" : ""}{fmtVND(p.gain)}
                   </td>
-                  <td className={`text-right p-4 tabular-nums font-medium ${p.gainPct >= 0 ? "text-emerald-300" : "text-rose-300"}`}>
+                  <td className={`text-right p-4 tabular-nums font-medium ${p.gainPct >= 0 ? "text-emerald-700" : "text-rose-700"}`}>
                     {fmtPct(p.gainPct)}
                   </td>
                   <td className="text-right p-4 tabular-nums text-stone-500">{p.days}</td>
                   <td className="p-4">
-                    <button onClick={() => setSellTarget(p)} className="text-stone-600 hover:text-rose-400">
+                    <button onClick={() => setSellTarget(p)} className="text-stone-500 hover:text-rose-600">
                       <Trash2 className="w-3.5 h-3.5"/>
                     </button>
                   </td>
@@ -722,44 +727,44 @@ function WatchlistView({ watchlist, onAdd, onRemove, onPriceUpdate }) {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="font-serif text-2xl text-amber-100" style={SERIF}>Watchlist</h2>
-          <p className="text-stone-500 text-sm mt-1">Stocks you're tracking but haven't bought.</p>
+          <h2 className="font-serif text-3xl text-amber-800" style={SERIF}>Watchlist</h2>
+          <p className="text-stone-500 text-base mt-1">Stocks you're tracking but haven't bought.</p>
         </div>
-        <button onClick={() => setShowForm(true)} className="flex items-center gap-1.5 px-4 py-2 bg-amber-100/10 border border-amber-200/30 text-amber-100 text-xs tracking-wider uppercase hover:bg-amber-100/20">
+        <button onClick={() => setShowForm(true)} className="flex items-center gap-1.5 px-4 py-2 bg-amber-50 border border-amber-400/40 text-amber-800 text-sm tracking-wider uppercase hover:bg-amber-100">
           <Plus className="w-3.5 h-3.5"/> Add
         </button>
       </div>
       {showForm && <AddWatchForm existing={watchlist} onAdd={(s) => { onAdd(s); setShowForm(false); }} onCancel={() => setShowForm(false)} />}
       {!items.length ? (
         <div className="text-center py-16 text-stone-500">
-          <Eye className="w-10 h-10 mx-auto text-stone-700 mb-3"/>
+          <Eye className="w-10 h-10 mx-auto text-stone-400 mb-3"/>
           Your watchlist is empty. Add a ticker to start tracking.
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {items.map(s => (
-            <div key={s.symbol} className="bg-stone-900/40 border border-stone-800/60 p-5 rounded-sm hover:border-amber-200/20 transition-colors group">
+            <div key={s.symbol} className="bg-white/60 border border-stone-300/60 p-5 rounded-sm hover:border-amber-300/40 transition-colors group">
               <div className="flex items-start justify-between mb-3">
                 <div>
-                  <div className="font-serif text-2xl text-amber-100" style={SERIF}>{s.symbol}</div>
-                  <div className="text-xs text-stone-500 mt-0.5">{s.name}</div>
-                  <div className="text-[10px] text-stone-600 tracking-wider uppercase mt-0.5">{s.sector}</div>
+                  <div className="font-serif text-3xl text-amber-800" style={SERIF}>{s.symbol}</div>
+                  <div className="text-sm text-stone-500 mt-0.5">{s.name}</div>
+                  <div className="text-xs text-stone-500 tracking-wider uppercase mt-0.5">{s.sector}</div>
                 </div>
-                <button onClick={() => onRemove(s.symbol)} className="opacity-0 group-hover:opacity-100 text-stone-600 hover:text-rose-400 transition-opacity">
+                <button onClick={() => onRemove(s.symbol)} className="opacity-0 group-hover:opacity-100 text-stone-500 hover:text-rose-600 transition-opacity">
                   <Trash2 className="w-3.5 h-3.5"/>
                 </button>
               </div>
               <div className="flex items-baseline gap-2 mb-3">
-                <span className="font-serif text-2xl text-stone-100" style={SERIF}>
+                <span className="font-serif text-3xl text-stone-900" style={SERIF}>
                   <EditablePrice symbol={s.symbol} currentPrice={s.price} onUpdate={onPriceUpdate} />
                 </span>
-                <span className="text-xs text-stone-500">₫</span>
-                <span className={`text-xs tabular-nums ml-auto ${s.change >= 0 ? "text-emerald-400" : "text-rose-400"}`}>{fmtPct(s.changePct)}</span>
+                <span className="text-sm text-stone-500">₫</span>
+                <span className={`text-sm tabular-nums ml-auto ${s.change >= 0 ? "text-emerald-600" : "text-rose-600"}`}>{fmtPct(s.changePct)}</span>
               </div>
-              <div className="grid grid-cols-3 gap-2 pt-3 border-t border-stone-800/60 text-center">
-                <div><div className="text-[10px] text-stone-500 tracking-wider uppercase">P/E</div><div className="text-sm tabular-nums mt-0.5">{s.pe.toFixed(1)}</div></div>
-                <div><div className="text-[10px] text-stone-500 tracking-wider uppercase">ROE</div><div className="text-sm tabular-nums mt-0.5">{s.roe.toFixed(1)}%</div></div>
-                <div><div className="text-[10px] text-stone-500 tracking-wider uppercase">Yield</div><div className="text-sm tabular-nums mt-0.5">{s.divYield.toFixed(1)}%</div></div>
+              <div className="grid grid-cols-3 gap-2 pt-3 border-t border-stone-300/60 text-center">
+                <div><div className="text-xs text-stone-500 tracking-wider uppercase">P/E</div><div className="text-base tabular-nums mt-0.5">{s.pe.toFixed(1)}</div></div>
+                <div><div className="text-xs text-stone-500 tracking-wider uppercase">ROE</div><div className="text-base tabular-nums mt-0.5">{s.roe.toFixed(1)}%</div></div>
+                <div><div className="text-xs text-stone-500 tracking-wider uppercase">Yield</div><div className="text-base tabular-nums mt-0.5">{s.divYield.toFixed(1)}%</div></div>
               </div>
             </div>
           ))}
@@ -790,55 +795,55 @@ function DiscoverView() {
   const toggle = (k) => setFilters(f => ({ ...f, [k]: !f[k] }));
   const FilterChip = ({ k, label, hint }) => (
     <button onClick={() => toggle(k)}
-      className={`px-3 py-2 text-xs tracking-wider transition-all text-left ${
-        filters[k] ? "bg-amber-100/10 text-amber-100 border border-amber-200/40" : "bg-stone-900/40 text-stone-400 border border-stone-800 hover:border-stone-700"
+      className={`px-3 py-2 text-sm tracking-wider transition-all text-left ${
+        filters[k] ? "bg-amber-50 text-amber-800 border border-amber-400/40" : "bg-white/60 text-stone-500 border border-stone-300 hover:border-stone-300"
       }`}>
       <div className="font-medium">{label}</div>
-      <div className="text-[10px] text-stone-500 mt-0.5">{hint}</div>
+      <div className="text-xs text-stone-500 mt-0.5">{hint}</div>
     </button>
   );
   const anyActive = Object.values(filters).some(Boolean);
 
   return (
     <div className="space-y-6">
-      <Section title="Filters" subtitle="Stack to narrow results" action={<Filter className="w-4 h-4 text-amber-200"/>}>
+      <Section title="Filters" subtitle="Stack to narrow results" action={<Filter className="w-4 h-4 text-amber-700"/>}>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <FilterChip k="undervalued" label="Undervalued" hint={`P/E < ${SECTOR_BENCH.pe} & P/B < ${SECTOR_BENCH.pb}`}/>
           <FilterChip k="growth"      label="High Growth" hint={`Rev > ${SECTOR_BENCH.revGrowth}% & EPS > ${SECTOR_BENCH.epsGrowth}%`}/>
           <FilterChip k="dividend"    label="Dividend"    hint={`Yield > ${SECTOR_BENCH.divYield}%`}/>
         </div>
       </Section>
-      <div className="text-[11px] text-stone-500 tracking-[0.2em] uppercase">
+      <div className="text-sm text-stone-500 tracking-[0.2em] uppercase">
         {anyActive ? `${candidates.length} match${candidates.length !== 1 ? "es" : ""}` : "Pick at least one filter"}
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {candidates.map((c) => (
-          <div key={c.symbol} className="bg-stone-900/40 border border-stone-800/60 p-5 rounded-sm hover:border-amber-200/20 transition-colors">
+          <div key={c.symbol} className="bg-white/60 border border-stone-300/60 p-5 rounded-sm hover:border-amber-300/40 transition-colors">
             <div className="flex items-start justify-between mb-3">
               <div>
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="font-serif text-2xl text-amber-100" style={SERIF}>{c.symbol}</span>
-                  <span className="text-[10px] text-stone-500 tracking-[0.2em] uppercase">{c.sector}</span>
+                  <span className="font-serif text-3xl text-amber-800" style={SERIF}>{c.symbol}</span>
+                  <span className="text-xs text-stone-500 tracking-[0.2em] uppercase">{c.sector}</span>
                 </div>
-                <div className="text-sm text-stone-400">{c.name}</div>
+                <div className="text-base text-stone-500">{c.name}</div>
               </div>
               <div className="text-right">
-                <div className="font-serif text-xl text-stone-100 tabular-nums" style={SERIF}>{fmtVND(c.price)}</div>
-                <div className={`text-xs tabular-nums ${c.change >= 0 ? "text-emerald-400" : "text-rose-400"}`}>{fmtPct(c.changePct)}</div>
+                <div className="font-serif text-2xl text-stone-900 tabular-nums" style={SERIF}>{fmtVND(c.price)}</div>
+                <div className={`text-sm tabular-nums ${c.change >= 0 ? "text-emerald-600" : "text-rose-600"}`}>{fmtPct(c.changePct)}</div>
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-2 mt-4 pt-3 border-t border-stone-800/60">
-              <div className={`text-center py-2 rounded-sm border ${c.passes.undervalued ? "border-emerald-400/30 bg-emerald-400/5" : "border-stone-800 opacity-40"}`}>
-                <div className="text-[10px] tracking-wider uppercase text-stone-500">P/E · P/B</div>
-                <div className={`text-sm tabular-nums mt-0.5 ${c.passes.undervalued ? "text-emerald-300" : "text-stone-500"}`}>{c.pe.toFixed(1)} · {c.pb.toFixed(2)}</div>
+            <div className="grid grid-cols-3 gap-2 mt-4 pt-3 border-t border-stone-300/60">
+              <div className={`text-center py-2 rounded-sm border ${c.passes.undervalued ? "border-emerald-400/30 bg-emerald-400/5" : "border-stone-300 opacity-40"}`}>
+                <div className="text-xs tracking-wider uppercase text-stone-500">P/E · P/B</div>
+                <div className={`text-base tabular-nums mt-0.5 ${c.passes.undervalued ? "text-emerald-700" : "text-stone-500"}`}>{c.pe.toFixed(1)} · {c.pb.toFixed(2)}</div>
               </div>
-              <div className={`text-center py-2 rounded-sm border ${c.passes.growth ? "border-emerald-400/30 bg-emerald-400/5" : "border-stone-800 opacity-40"}`}>
-                <div className="text-[10px] tracking-wider uppercase text-stone-500">Rev · EPS</div>
-                <div className={`text-sm tabular-nums mt-0.5 ${c.passes.growth ? "text-emerald-300" : "text-stone-500"}`}>{c.revGrowth.toFixed(0)}% · {c.epsGrowth.toFixed(0)}%</div>
+              <div className={`text-center py-2 rounded-sm border ${c.passes.growth ? "border-emerald-400/30 bg-emerald-400/5" : "border-stone-300 opacity-40"}`}>
+                <div className="text-xs tracking-wider uppercase text-stone-500">Rev · EPS</div>
+                <div className={`text-base tabular-nums mt-0.5 ${c.passes.growth ? "text-emerald-700" : "text-stone-500"}`}>{c.revGrowth.toFixed(0)}% · {c.epsGrowth.toFixed(0)}%</div>
               </div>
-              <div className={`text-center py-2 rounded-sm border ${c.passes.dividend ? "border-emerald-400/30 bg-emerald-400/5" : "border-stone-800 opacity-40"}`}>
-                <div className="text-[10px] tracking-wider uppercase text-stone-500">Yield</div>
-                <div className={`text-sm tabular-nums mt-0.5 ${c.passes.dividend ? "text-emerald-300" : "text-stone-500"}`}>{c.divYield.toFixed(2)}%</div>
+              <div className={`text-center py-2 rounded-sm border ${c.passes.dividend ? "border-emerald-400/30 bg-emerald-400/5" : "border-stone-300 opacity-40"}`}>
+                <div className="text-xs tracking-wider uppercase text-stone-500">Yield</div>
+                <div className={`text-base tabular-nums mt-0.5 ${c.passes.dividend ? "text-emerald-700" : "text-stone-500"}`}>{c.divYield.toFixed(2)}%</div>
               </div>
             </div>
           </div>
@@ -914,7 +919,7 @@ function FlowView() {
       <div className="flex flex-wrap items-center gap-3">
         <PillToggle value={scope} onChange={setScope} options={[{ value: "market", label: "Whole Market" }, { value: "ticker", label: "Per Ticker" }, { value: "sector", label: "By Sector" }]}/>
         {scope === "ticker" && (
-          <select value={ticker} onChange={e => setTicker(e.target.value)} className="bg-stone-900 border border-stone-800 px-3 py-2 text-sm focus:outline-none focus:border-amber-200/30">
+          <select value={ticker} onChange={e => setTicker(e.target.value)} className="bg-white border border-stone-300 px-3 py-2 text-base focus:outline-none focus:border-amber-400/40">
             {Object.keys(UNIVERSE).map(s => <option key={s} value={s}>{s} — {UNIVERSE[s].name}</option>)}
           </select>
         )}
@@ -926,36 +931,36 @@ function FlowView() {
       {(scope === "market" || scope === "ticker") && (
         <>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="bg-gradient-to-br from-stone-900/60 to-stone-900/20 border border-stone-800/60 p-5 rounded-sm">
-              <div className="text-[10px] text-stone-500 tracking-[0.2em] uppercase">Foreign Net · {periodLabel}</div>
-              <div className={`font-serif text-3xl tabular-nums mt-1 ${investorTotals.foreign >= 0 ? "text-emerald-300" : "text-rose-300"}`} style={SERIF}>
-                {fmtFlow(investorTotals.foreign)} <span className="text-sm text-stone-500">tỷ ₫</span>
+            <div className="bg-gradient-to-br from-white/90 to-amber-50/40 border border-stone-300/60 p-5 rounded-sm">
+              <div className="text-xs text-stone-500 tracking-[0.2em] uppercase">Foreign Net · {periodLabel}</div>
+              <div className={`font-serif text-4xl tabular-nums mt-1 ${investorTotals.foreign >= 0 ? "text-emerald-700" : "text-rose-700"}`} style={SERIF}>
+                {fmtFlow(investorTotals.foreign)} <span className="text-base text-stone-500">tỷ ₫</span>
               </div>
-              <div className="text-[11px] text-stone-500 mt-1 flex items-center gap-1">
-                {currHalf >= prevHalf ? <ArrowUpRight className="w-3 h-3 text-emerald-400"/> : <ArrowDownRight className="w-3 h-3 text-rose-400"/>}
+              <div className="text-sm text-stone-500 mt-1 flex items-center gap-1">
+                {currHalf >= prevHalf ? <ArrowUpRight className="w-3 h-3 text-emerald-600"/> : <ArrowDownRight className="w-3 h-3 text-rose-600"/>}
                 vs prior half: {fmtFlow(currHalf - prevHalf)}
               </div>
             </div>
-            <div className="bg-stone-900/40 border border-stone-800/60 p-5 rounded-sm">
-              <div className="text-[10px] text-stone-500 tracking-[0.2em] uppercase">Institutional Net</div>
-              <div className={`font-serif text-3xl tabular-nums mt-1 ${investorTotals.institutional >= 0 ? "text-emerald-300" : "text-rose-300"}`} style={SERIF}>
-                {fmtFlow(investorTotals.institutional)} <span className="text-sm text-stone-500">tỷ ₫</span>
+            <div className="bg-white/60 border border-stone-300/60 p-5 rounded-sm">
+              <div className="text-xs text-stone-500 tracking-[0.2em] uppercase">Institutional Net</div>
+              <div className={`font-serif text-4xl tabular-nums mt-1 ${investorTotals.institutional >= 0 ? "text-emerald-700" : "text-rose-700"}`} style={SERIF}>
+                {fmtFlow(investorTotals.institutional)} <span className="text-base text-stone-500">tỷ ₫</span>
               </div>
             </div>
-            <div className="bg-stone-900/40 border border-stone-800/60 p-5 rounded-sm">
-              <div className="text-[10px] text-stone-500 tracking-[0.2em] uppercase">Retail Net</div>
-              <div className={`font-serif text-3xl tabular-nums mt-1 ${investorTotals.retail >= 0 ? "text-emerald-300" : "text-rose-300"}`} style={SERIF}>
-                {fmtFlow(investorTotals.retail)} <span className="text-sm text-stone-500">tỷ ₫</span>
+            <div className="bg-white/60 border border-stone-300/60 p-5 rounded-sm">
+              <div className="text-xs text-stone-500 tracking-[0.2em] uppercase">Retail Net</div>
+              <div className={`font-serif text-4xl tabular-nums mt-1 ${investorTotals.retail >= 0 ? "text-emerald-700" : "text-rose-700"}`} style={SERIF}>
+                {fmtFlow(investorTotals.retail)} <span className="text-base text-stone-500">tỷ ₫</span>
               </div>
             </div>
-            <div className="bg-stone-900/40 border border-stone-800/60 p-5 rounded-sm">
-              <div className="text-[10px] text-stone-500 tracking-[0.2em] uppercase">Pattern</div>
-              <div className="font-serif text-xl text-amber-100 mt-1" style={SERIF}>
+            <div className="bg-white/60 border border-stone-300/60 p-5 rounded-sm">
+              <div className="text-xs text-stone-500 tracking-[0.2em] uppercase">Pattern</div>
+              <div className="font-serif text-2xl text-amber-800 mt-1" style={SERIF}>
                 {investorTotals.foreign < 0 && investorTotals.retail > 0 ? "Distribution" :
                  investorTotals.foreign > 0 && investorTotals.retail > 0 ? "Accumulation" :
                  investorTotals.foreign > 0 && investorTotals.retail < 0 ? "Foreign-led" : "Mixed"}
               </div>
-              <div className="text-[11px] text-stone-500 mt-1">
+              <div className="text-sm text-stone-500 mt-1">
                 {investorTotals.foreign < 0 && investorTotals.retail > 0 ? "Foreigners selling, retail absorbing" :
                  investorTotals.foreign > 0 && investorTotals.retail > 0 ? "Broad-based buying" :
                  investorTotals.foreign > 0 && investorTotals.retail < 0 ? "Smart money buying" : "No clear pattern"}
@@ -966,11 +971,11 @@ function FlowView() {
           <Section title="Net Flow by Investor Group" subtitle={`${period.charAt(0).toUpperCase() + period.slice(1)} · ${scope === "market" ? "Whole VN market" : ticker} · tỷ VND`}>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={investorAgg}>
-                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: "#78716c", fontSize: 10 }} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fill: "#78716c", fontSize: 10 }} />
-                <ReferenceLine y={0} stroke="#44403c" />
-                <Tooltip contentStyle={{ background: "#1c1814", border: "1px solid #44403c", borderRadius: 2, fontSize: 12 }} formatter={(v, n) => [`${fmtFlow(v)} tỷ`, n.charAt(0).toUpperCase() + n.slice(1)]} cursor={{ fill: "rgba(255,255,255,0.03)" }}/>
-                <Legend wrapperStyle={{ fontSize: 11, color: "#a8a29e" }} />
+                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: "#92897f", fontSize: 10 }} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fill: "#92897f", fontSize: 10 }} />
+                <ReferenceLine y={0} stroke="#d6d3d1" />
+                <Tooltip contentStyle={{ background: "#ffffff", border: "1px solid #d6d3d1", borderRadius: 2, fontSize: 12 }} formatter={(v, n) => [`${fmtFlow(v)} tỷ`, n.charAt(0).toUpperCase() + n.slice(1)]} cursor={{ fill: "rgba(0,0,0,0.03)" }}/>
+                <Legend wrapperStyle={{ fontSize: 11, color: "#78716c" }} />
                 <Bar dataKey="foreign" name="Foreign" fill={COLORS.foreign} />
                 <Bar dataKey="institutional" name="Institutional" fill={COLORS.institutional} />
                 <Bar dataKey="retail" name="Retail" fill={COLORS.retail} />
@@ -980,31 +985,31 @@ function FlowView() {
 
           {scope === "market" && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <Section title="Foreign Top Buys" subtitle="Where foreigners are putting money in" action={<TrendingUp className="w-4 h-4 text-emerald-400"/>}>
+              <Section title="Foreign Top Buys" subtitle="Where foreigners are putting money in" action={<TrendingUp className="w-4 h-4 text-emerald-600"/>}>
                 <div className="space-y-2">
                   {TOP_FOREIGN.buying.map(t => (
-                    <div key={t.symbol} className="flex items-center justify-between py-2 border-b border-stone-800/40 last:border-0">
-                      <span className="font-serif text-base text-amber-100" style={SERIF}>{t.symbol}</span>
+                    <div key={t.symbol} className="flex items-center justify-between py-2 border-b border-stone-300/40 last:border-0">
+                      <span className="font-serif text-lg text-amber-800" style={SERIF}>{t.symbol}</span>
                       <div className="flex items-center gap-3">
                         <div className="w-32 h-1 bg-stone-800 rounded-full overflow-hidden">
                           <div className="h-full bg-emerald-400/70" style={{ width: `${(t.value / TOP_FOREIGN.buying[0].value) * 100}%` }}/>
                         </div>
-                        <span className="text-emerald-300 tabular-nums text-sm w-20 text-right">+{t.value.toFixed(1)} tỷ</span>
+                        <span className="text-emerald-700 tabular-nums text-base w-20 text-right">+{t.value.toFixed(1)} tỷ</span>
                       </div>
                     </div>
                   ))}
                 </div>
               </Section>
-              <Section title="Foreign Top Sells" subtitle="Where foreigners are pulling money out" action={<TrendingDown className="w-4 h-4 text-rose-400"/>}>
+              <Section title="Foreign Top Sells" subtitle="Where foreigners are pulling money out" action={<TrendingDown className="w-4 h-4 text-rose-600"/>}>
                 <div className="space-y-2">
                   {TOP_FOREIGN.selling.map(t => (
-                    <div key={t.symbol} className="flex items-center justify-between py-2 border-b border-stone-800/40 last:border-0">
-                      <span className="font-serif text-base text-amber-100" style={SERIF}>{t.symbol}</span>
+                    <div key={t.symbol} className="flex items-center justify-between py-2 border-b border-stone-300/40 last:border-0">
+                      <span className="font-serif text-lg text-amber-800" style={SERIF}>{t.symbol}</span>
                       <div className="flex items-center gap-3">
                         <div className="w-32 h-1 bg-stone-800 rounded-full overflow-hidden">
                           <div className="h-full bg-rose-400/70" style={{ width: `${(Math.abs(t.value) / Math.abs(TOP_FOREIGN.selling[0].value)) * 100}%` }}/>
                         </div>
-                        <span className="text-rose-300 tabular-nums text-sm w-20 text-right">{t.value.toFixed(1)} tỷ</span>
+                        <span className="text-rose-700 tabular-nums text-base w-20 text-right">{t.value.toFixed(1)} tỷ</span>
                       </div>
                     </div>
                   ))}
@@ -1018,32 +1023,32 @@ function FlowView() {
       {scope === "sector" && (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-gradient-to-br from-emerald-900/20 to-stone-900/20 border border-emerald-500/20 p-5 rounded-sm">
-              <div className="text-[10px] text-emerald-300/80 tracking-[0.2em] uppercase mb-3">Top Inflows · {periodLabel}</div>
+            <div className="bg-gradient-to-br from-emerald-50 to-amber-50/40 border border-emerald-500/20 p-5 rounded-sm">
+              <div className="text-xs text-emerald-700/80 tracking-[0.2em] uppercase mb-3">Top Inflows · {periodLabel}</div>
               <div className="space-y-2">
                 {sectorTotals.slice(0, 3).filter(s => s.total > 0).map((s, i) => (
                   <div key={s.sector} className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="text-stone-500 text-xs tabular-nums w-4">{i + 1}.</span>
+                      <span className="text-stone-500 text-sm tabular-nums w-4">{i + 1}.</span>
                       <span className="w-2 h-2 rounded-full" style={{ background: SECTOR_COLORS[s.sector] }}/>
-                      <span className="font-serif text-base text-amber-100" style={SERIF}>{s.sector}</span>
+                      <span className="font-serif text-lg text-amber-800" style={SERIF}>{s.sector}</span>
                     </div>
-                    <span className="text-emerald-300 tabular-nums text-sm">+{s.total.toFixed(1)} tỷ ₫</span>
+                    <span className="text-emerald-700 tabular-nums text-base">+{s.total.toFixed(1)} tỷ ₫</span>
                   </div>
                 ))}
               </div>
             </div>
-            <div className="bg-gradient-to-br from-rose-900/20 to-stone-900/20 border border-rose-500/20 p-5 rounded-sm">
-              <div className="text-[10px] text-rose-300/80 tracking-[0.2em] uppercase mb-3">Top Outflows · {periodLabel}</div>
+            <div className="bg-gradient-to-br from-rose-50 to-amber-50/40 border border-rose-500/20 p-5 rounded-sm">
+              <div className="text-xs text-rose-700/80 tracking-[0.2em] uppercase mb-3">Top Outflows · {periodLabel}</div>
               <div className="space-y-2">
                 {[...sectorTotals].reverse().slice(0, 3).filter(s => s.total < 0).map((s, i) => (
                   <div key={s.sector} className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="text-stone-500 text-xs tabular-nums w-4">{i + 1}.</span>
+                      <span className="text-stone-500 text-sm tabular-nums w-4">{i + 1}.</span>
                       <span className="w-2 h-2 rounded-full" style={{ background: SECTOR_COLORS[s.sector] }}/>
-                      <span className="font-serif text-base text-amber-100" style={SERIF}>{s.sector}</span>
+                      <span className="font-serif text-lg text-amber-800" style={SERIF}>{s.sector}</span>
                     </div>
-                    <span className="text-rose-300 tabular-nums text-sm">{s.total.toFixed(1)} tỷ ₫</span>
+                    <span className="text-rose-700 tabular-nums text-base">{s.total.toFixed(1)} tỷ ₫</span>
                   </div>
                 ))}
               </div>
@@ -1053,10 +1058,10 @@ function FlowView() {
           <Section title="Net Flow by Sector" subtitle={`Total over ${periodLabel} · ranked · tỷ VND`}>
             <ResponsiveContainer width="100%" height={Math.max(220, sectorTotals.length * 38)}>
               <BarChart data={sectorTotals} layout="vertical" margin={{ left: 30 }}>
-                <XAxis type="number" axisLine={false} tickLine={false} tick={{ fill: "#78716c", fontSize: 10 }} />
-                <YAxis dataKey="sector" type="category" axisLine={false} tickLine={false} tick={{ fill: "#a8a29e", fontSize: 11 }} width={120} />
-                <ReferenceLine x={0} stroke="#44403c" />
-                <Tooltip contentStyle={{ background: "#1c1814", border: "1px solid #44403c", borderRadius: 2, fontSize: 12 }} formatter={(v) => [`${fmtFlow(v)} tỷ ₫`, "Net flow"]} cursor={{ fill: "rgba(255,255,255,0.03)" }}/>
+                <XAxis type="number" axisLine={false} tickLine={false} tick={{ fill: "#92897f", fontSize: 10 }} />
+                <YAxis dataKey="sector" type="category" axisLine={false} tickLine={false} tick={{ fill: "#78716c", fontSize: 11 }} width={120} />
+                <ReferenceLine x={0} stroke="#d6d3d1" />
+                <Tooltip contentStyle={{ background: "#ffffff", border: "1px solid #d6d3d1", borderRadius: 2, fontSize: 12 }} formatter={(v) => [`${fmtFlow(v)} tỷ ₫`, "Net flow"]} cursor={{ fill: "rgba(0,0,0,0.03)" }}/>
                 <Bar dataKey="total" radius={[0, 2, 2, 0]}>
                   {sectorTotals.map((d, i) => <Cell key={i} fill={d.total >= 0 ? "#7ec488" : "#d97a7a"} />)}
                 </Bar>
@@ -1067,11 +1072,11 @@ function FlowView() {
           <Section title="Sector Flow Over Time" subtitle="Each line is one sector's net flow per period">
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={sectorAgg}>
-                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: "#78716c", fontSize: 10 }} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fill: "#78716c", fontSize: 10 }} />
-                <ReferenceLine y={0} stroke="#44403c" />
-                <Tooltip contentStyle={{ background: "#1c1814", border: "1px solid #44403c", borderRadius: 2, fontSize: 12 }} formatter={(v, n) => [`${fmtFlow(v)} tỷ`, n]}/>
-                <Legend wrapperStyle={{ fontSize: 11, color: "#a8a29e" }} />
+                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: "#92897f", fontSize: 10 }} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fill: "#92897f", fontSize: 10 }} />
+                <ReferenceLine y={0} stroke="#d6d3d1" />
+                <Tooltip contentStyle={{ background: "#ffffff", border: "1px solid #d6d3d1", borderRadius: 2, fontSize: 12 }} formatter={(v, n) => [`${fmtFlow(v)} tỷ`, n]}/>
+                <Legend wrapperStyle={{ fontSize: 11, color: "#78716c" }} />
                 {SECTORS.map(sec => <Line key={sec} type="monotone" dataKey={sec} stroke={SECTOR_COLORS[sec]} strokeWidth={1.8} dot={false} />)}
               </LineChart>
             </ResponsiveContainer>
@@ -1081,22 +1086,22 @@ function FlowView() {
             <div className="overflow-x-auto">
               <div className="min-w-[600px]">
                 <div className="flex items-center pl-[120px] mb-2">
-                  {sectorAgg.map(d => <div key={d.date} className="flex-1 text-[9px] text-stone-600 text-center tabular-nums">{d.date}</div>)}
+                  {sectorAgg.map(d => <div key={d.date} className="flex-1 text-[11px] text-stone-500 text-center tabular-nums">{d.date}</div>)}
                 </div>
                 {SECTORS.map(sec => (
                   <div key={sec} className="flex items-center mb-1">
                     <div className="w-[120px] flex items-center gap-2 pr-3">
                       <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: SECTOR_COLORS[sec] }}/>
-                      <span className="text-xs text-stone-300 truncate">{sec}</span>
+                      <span className="text-sm text-stone-400 truncate">{sec}</span>
                     </div>
                     {sectorAgg.map(d => (
                       <div key={d.date} title={`${sec} · ${d.date}: ${fmtFlow(d[sec])} tỷ`}
-                        className="flex-1 h-7 mx-[1px] rounded-sm border border-stone-800/40 cursor-help transition-transform hover:scale-110"
+                        className="flex-1 h-7 mx-[1px] rounded-sm border border-stone-300/40 cursor-help transition-transform hover:scale-110"
                         style={{ background: heatColor(d[sec]) }}/>
                     ))}
                   </div>
                 ))}
-                <div className="flex items-center justify-end gap-2 mt-4 text-[10px] text-stone-500">
+                <div className="flex items-center justify-end gap-2 mt-4 text-xs text-stone-500">
                   <span>Outflow</span>
                   <div className="flex h-2">
                     {[-1, -0.66, -0.33, 0, 0.33, 0.66, 1].map(v => <div key={v} className="w-5" style={{ background: heatColor(v * sectorHeatMax) }}/>)}
@@ -1164,31 +1169,31 @@ export default function StockTrackerApp() {
   };
 
   return (
-    <div className="min-h-screen bg-[#16130f] text-stone-200" style={{ fontFamily: '"Inter", system-ui, sans-serif' }}>
-      <div className="fixed inset-0 pointer-events-none opacity-[0.03]"
+    <div className="min-h-screen bg-[#faf6ee] text-stone-800" style={{ fontFamily: '"Inter", system-ui, sans-serif' }}>
+      <div className="fixed inset-0 pointer-events-none opacity-[0.015]"
         style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 200 200\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'n\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23n)\'/%3E%3C/svg%3E")' }}/>
       <div className="relative max-w-[1400px] mx-auto px-8 py-6">
-        <header className="flex items-center justify-between pb-5 mb-6 border-b border-stone-800/60">
+        <header className="flex items-center justify-between pb-5 mb-6 border-b border-stone-300/60">
           <div className="flex items-baseline gap-3">
-            <h1 className="font-serif text-2xl text-amber-100/90 tracking-wider" style={SERIF}>LEDGER</h1>
-            <span className="text-stone-600 text-[10px] tracking-[0.3em] uppercase">Vietnam Equity Tracker</span>
+            <h1 className="font-serif text-3xl text-amber-800/90 tracking-wider" style={SERIF}>LEDGER</h1>
+            <span className="text-stone-500 text-xs tracking-[0.3em] uppercase">Vietnam Equity Tracker</span>
           </div>
-          <div className="flex items-center gap-4 text-[11px] text-stone-500">
-            <button onClick={handleResetPrices} className="text-stone-500 hover:text-rose-300 tracking-wider transition-colors">RESET PRICES</button>
+          <div className="flex items-center gap-4 text-sm text-stone-500">
+            <button onClick={handleResetPrices} className="text-stone-500 hover:text-rose-700 tracking-wider transition-colors">RESET PRICES</button>
             <div className="flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-300"/>
-              <span className="tracking-wider text-amber-200">CLICK PRICES TO EDIT</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500"/>
+              <span className="tracking-wider text-amber-700">CLICK PRICES TO EDIT</span>
             </div>
           </div>
         </header>
 
-        <nav className="flex gap-1 mb-8 border-b border-stone-800/40 overflow-x-auto">
+        <nav className="flex gap-1 mb-8 border-b border-stone-300/40 overflow-x-auto">
           <Tab active={tab === "holdings"}  onClick={() => setTab("holdings")}  icon={Briefcase}>My Holdings</Tab>
           <Tab active={tab === "watchlist"} onClick={() => setTab("watchlist")} icon={Eye}>Watchlist</Tab>
           <Tab active={tab === "discover"}  onClick={() => setTab("discover")}  icon={Compass}>Discover</Tab>
           <Tab active={tab === "flow"}      onClick={() => setTab("flow")}      icon={Activity}>Market Flow</Tab>
           <Tab active={tab === "sold"}      onClick={() => setTab("sold")}      icon={DollarSign}>
-            Sold {soldPositions.length > 0 && <span className="ml-1 px-1.5 py-0.5 bg-amber-100/10 text-amber-200 text-[9px] rounded-sm">{soldPositions.length}</span>}
+            Sold {soldPositions.length > 0 && <span className="ml-1 px-1.5 py-0.5 bg-amber-50 text-amber-700 text-[11px] rounded-sm">{soldPositions.length}</span>}
           </Tab>
         </nav>
 
@@ -1198,7 +1203,7 @@ export default function StockTrackerApp() {
         {tab === "flow"      && <FlowView key={priceVersion}/>}
         {tab === "sold"      && <SoldView soldPositions={soldPositions} onClear={() => { if (confirm("Clear all sold positions?")) setSoldPositions([]); }}/>}
 
-        <footer className="mt-12 pt-5 border-t border-stone-800/60 flex items-center justify-between text-[10px] text-stone-600 tracking-wider uppercase">
+        <footer className="mt-12 pt-5 border-t border-stone-300/60 flex items-center justify-between text-xs text-stone-500 tracking-wider uppercase">
           <span>Manual price entry · Saved locally</span>
           <span>Ledger · Vietnam Markets</span>
         </footer>
