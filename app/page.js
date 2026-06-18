@@ -696,7 +696,7 @@ function HoldingsView({ holdings, onAdd, onRemove, onSell, onPriceUpdate }) {
                   </td>
                   <td className="text-right p-4 tabular-nums">{fmtVND(p.currentValue)}</td>
                   <td className={`text-right p-4 tabular-nums text-sm ${p.todayUp ? "text-emerald-600" : "text-rose-600"}`}>
-                    {p.todayUp ? "+" : ""}{fmtVND(Math.abs(p.todayGain))}
+                    {p.todayUp ? "+" : "-"}{fmtVND(Math.abs(p.todayGain))}
                   </td>
                   <td className={`text-right p-4 tabular-nums ${p.gain >= 0 ? "text-emerald-700" : "text-rose-700"}`}>
                     {p.gain >= 0 ? "+" : ""}{fmtVND(p.gain)}
