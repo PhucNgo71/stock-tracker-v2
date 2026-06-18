@@ -228,10 +228,8 @@ function computePosition(h) {
   const currentValue = h.quantity * stock.price;
   const gain = currentValue - cost;
   const gainPct = cost > 0 ? (gain / cost) * 100 : 0;
-  const todayGain = h.quantity * stock.change;
-  const todayUp = stock.change >= 0;
   const days = daysBetween(h.buyDate);
-  return { ...h, stock, cost, currentValue, gain, gainPct, todayGain, todayUp, days };
+  return { ...h, stock, cost, currentValue, gain, gainPct, days };
 }
 
 const SERIF = { fontFamily: '"Cormorant Garamond", Georgia, serif' };
@@ -561,8 +559,7 @@ function HoldingsView({ holdings, onAdd, onRemove, onSell, onPriceUpdate }) {
     const cost = positions.reduce((s, p) => s + p.cost, 0);
     const value = positions.reduce((s, p) => s + p.currentValue, 0);
     const gain = value - cost;
-    const todayGain = positions.reduce((s, p) => s + p.todayGain, 0);
-    return { cost, value, gain, gainPct: cost > 0 ? (gain / cost) * 100 : 0, todayGain, todayPct: value > 0 ? (todayGain / value) * 100 : 0 };
+    return { cost, value, gain, gainPct: cost > 0 ? (gain / cost) * 100 : 0 };
   }, [positions]);
 
   const sorted = [...positions].sort((a, b) => b.gainPct - a.gainPct);
@@ -623,9 +620,8 @@ function HoldingsView({ holdings, onAdd, onRemove, onSell, onPriceUpdate }) {
             <Plus className="w-3.5 h-3.5"/> Add
           </button>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 pt-5 border-t border-stone-300/60">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-5 border-t border-stone-300/60">
           <Stat label="Invested" value={`${fmtVND(totals.cost)} ₫`} />
-          <Stat label="Today's P&L" value={`${totals.todayGain >= 0 ? "+" : ""}${fmtVND(totals.todayGain)} ₫`} sub={fmtPct(totals.todayPct)} tone={totals.todayGain >= 0 ? "good" : "bad"} />
           <Stat label="Positions" value={positions.length} />
           <Stat label="Top Performer" value={best.symbol} sub={fmtPct(best.gainPct)} tone="good" />
         </div>
@@ -675,7 +671,6 @@ function HoldingsView({ holdings, onAdd, onRemove, onSell, onPriceUpdate }) {
                 <th className="text-right p-4 font-normal">Buy</th>
                 <th className="text-right p-4 font-normal">Current</th>
                 <th className="text-right p-4 font-normal">Value</th>
-                <th className="text-right p-4 font-normal">Today</th>
                 <th className="text-right p-4 font-normal">Gain / Loss</th>
                 <th className="text-right p-4 font-normal">ROI</th>
                 <th className="text-right p-4 font-normal">Days</th>
@@ -695,9 +690,6 @@ function HoldingsView({ holdings, onAdd, onRemove, onSell, onPriceUpdate }) {
                     <EditablePrice symbol={p.symbol} currentPrice={p.stock.price} onUpdate={onPriceUpdate} />
                   </td>
                   <td className="text-right p-4 tabular-nums">{fmtVND(p.currentValue)}</td>
-                  <td className={`text-right p-4 tabular-nums text-sm ${p.todayUp ? "text-emerald-600" : "text-rose-600"}`}>
-                    {p.todayUp ? "+" : "-"}{fmtVND(Math.abs(p.todayGain))}
-                  </td>
                   <td className={`text-right p-4 tabular-nums ${p.gain >= 0 ? "text-emerald-700" : "text-rose-700"}`}>
                     {p.gain >= 0 ? "+" : ""}{fmtVND(p.gain)}
                   </td>
